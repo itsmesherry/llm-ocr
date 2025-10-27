@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 
 class LLMProvider(ABC):
@@ -21,14 +22,14 @@ class LLMProvider(ABC):
     async def generate_content(
         self,
         prompt: str,
-        image_bytes: bytes,
+        image_bytes_list: List[bytes],
     ) -> str:
         """
-        Generate content from image and prompt.
+        Generate content from images and prompt.
 
         Args:
             prompt: The instruction prompt
-            image_bytes: PNG image bytes
+            image_bytes_list: List of PNG image bytes (one or more pages)
 
         Returns:
             Generated text content

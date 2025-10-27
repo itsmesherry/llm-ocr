@@ -8,7 +8,8 @@ class OCRConfig:
 
     dpi: int = 200
     max_pages: Optional[int] = None
-    batch_size: int = 5
+    batch_size: int = 5  # PDF to image conversion batch size
+    llm_batch_size: int = 1  # Number of pages to send to LLM at once
     thread_count: int = 4
     convert_to_grayscale: bool = False
     optimize_png: bool = True
@@ -24,3 +25,5 @@ class OCRConfig:
             raise ValueError("DPI must be between 72 and 600")
         if self.batch_size < 1:
             raise ValueError("Batch size must be at least 1")
+        if self.llm_batch_size < 1:
+            raise ValueError("LLM batch size must be at least 1")

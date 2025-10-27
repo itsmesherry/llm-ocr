@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import List, Optional
 
 from google.genai import Client, types
 
@@ -15,8 +15,6 @@ class Gemini(LLMProvider):
     - gemini-2.5-flash (fast)
     - gemini-2.0-pro
     - gemini-2.0-flash
-    - gemini-1.5-pro
-    - gemini-1.5-flash
     """
 
     # Available models with their identifiers
@@ -24,8 +22,6 @@ class Gemini(LLMProvider):
     PRO_2_5 = "gemini-2.5-pro"
     FLASH_2_0 = "gemini-2.0-flash"
     PRO_2_0 = "gemini-2.0-pro"
-    PRO_1_5 = "gemini-1.5-pro"
-    FLASH_1_5 = "gemini-1.5-flash"
 
     def __init__(self, api_key: Optional[str] = None, model: str = FLASH_2_5, **kwargs):
         """
@@ -57,16 +53,21 @@ class Gemini(LLMProvider):
     async def generate_content(
         self,
         prompt: str,
-        image_bytes: bytes,
+        image_bytes_list: List[bytes],
     ) -> str:
-        """Generate content using Gemini."""
-        image_part = types.Part(
-            inline_data=types.Blob(mime_type="image/png", data=image_bytes)
-        )
+        """Generate content using Gemini with one or more images."""
+        # Create image parts for all images in the batch
+        image_parts = [
+            types.Part(inline_data=types.Blob(mime_type="image/png", data=image_bytes))
+            for image_bytes in image_bytes_list
+        ]
+
+        # Combine prompt and all images
+        contents = [prompt] + image_parts
 
         try:
             resp = await self.aclient.models.generate_content(
-                model=self.model, contents=[prompt, image_part], **self.kwargs
+                model=self.model, contents=contents, **self.kwargs
             )
 
             try:
@@ -81,4 +82,6 @@ class Gemini(LLMProvider):
 
     async def aclose(self):
         """Close the Gemini client."""
-        await self.aclient.aclose()
+        # The Google GenAI AsyncClient doesn't require explicit closing
+        # Resources are cleaned up automatically
+        pass

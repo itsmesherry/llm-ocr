@@ -76,20 +76,26 @@ class LLMOCR:
 
                 page = last + 1
 
-    async def _process_page_with_llm(
-        self, png_bytes: bytes, page_num: int, total_pages: int
+    async def _process_batch_with_llm(
+        self, png_bytes_list: List[bytes], page_nums: List[int], total_pages: int
     ) -> str:
-        """Process a single page with the LLM provider."""
+        """Process a batch of pages with the LLM provider."""
+        # Format page range for prompt
+        if len(page_nums) == 1:
+            page_range = f"{page_nums[0]}"
+        else:
+            page_range = f"{page_nums[0]}-{page_nums[-1]}"
+
         prompt = MARKDOWN_SYSTEM_PROMPT.format(
-            page_number=page_num, total_pages=total_pages
+            page_range=page_range, total_pages=total_pages
         )
 
         try:
-            content = await self.provider.generate_content(prompt, png_bytes)
+            content = await self.provider.generate_content(prompt, png_bytes_list)
             return content.strip()
         except Exception as err:
-            print(f"[ERROR] Page {page_num}: Failed to process: {err}")
-            return ""
+            print(f"[ERROR] Pages {page_range}: Failed to process: {err}")
+            raise  # Fail-fast: re-raise to stop processing
 
     def _combine_markdown_chunks(self, chunks: List[str]) -> str:
         """Combine markdown chunks from multiple pages."""
@@ -145,34 +151,64 @@ class LLMOCR:
 
         print(f"[INFO] Converting PDF: {pdf_path.name} ({total_pages} pages)")
         print(f"[INFO] Using provider: {self.provider.name} ({self.provider.model})")
+        print(f"[INFO] LLM batch size: {self.config.llm_batch_size}")
 
         markdown_chunks = []
-        async for page_num, png_bytes in self._iter_pdf_pages_as_png_bytes(pdf_path):
-            # Retry logic for transient errors
-            for attempt in range(self.config.max_retries):
-                try:
-                    markdown_content = await self._process_page_with_llm(
-                        png_bytes, page_num, total_pages
-                    )
-                    break
-                except Exception as e:
-                    if attempt == self.config.max_retries - 1:
-                        print(
-                            f"[ERROR] Page {page_num}: Failed after "
-                            f"{self.config.max_retries} attempts: {e}"
-                        )
-                        markdown_content = ""
-                        break
-                    await asyncio.sleep(self.config.retry_delay * (attempt + 1))
 
-            if markdown_content.strip():
-                print(
-                    f"[OK] Page {page_num}/{total_pages} processed "
-                    f"({len(markdown_content)} chars)"
-                )
-                markdown_chunks.append(markdown_content)
-            else:
-                print(f"[OK] Page {page_num}/{total_pages} - No content")
+        # Collect pages into batches according to llm_batch_size
+        page_batch = []
+        page_num_batch = []
+
+        async for page_num, png_bytes in self._iter_pdf_pages_as_png_bytes(pdf_path):
+            page_batch.append(png_bytes)
+            page_num_batch.append(page_num)
+
+            # Process batch when it reaches llm_batch_size or this is the last page
+            if len(page_batch) >= self.config.llm_batch_size or page_num == total_pages:
+                # Retry logic for transient errors
+                markdown_content = ""
+                for attempt in range(self.config.max_retries):
+                    try:
+                        markdown_content = await self._process_batch_with_llm(
+                            page_batch, page_num_batch, total_pages
+                        )
+                        break
+                    except Exception as e:
+                        if attempt == self.config.max_retries - 1:
+                            page_range = (
+                                f"{page_num_batch[0]}-{page_num_batch[-1]}"
+                                if len(page_num_batch) > 1
+                                else str(page_num_batch[0])
+                            )
+                            print(
+                                f"[ERROR] Pages {page_range}: Failed after "
+                                f"{self.config.max_retries} attempts: {e}"
+                            )
+                            raise  # Fail-fast: stop processing on failure
+                        await asyncio.sleep(self.config.retry_delay * (attempt + 1))
+
+                if markdown_content.strip():
+                    page_range = (
+                        f"{page_num_batch[0]}-{page_num_batch[-1]}"
+                        if len(page_num_batch) > 1
+                        else str(page_num_batch[0])
+                    )
+                    print(
+                        f"[OK] Pages {page_range}/{total_pages} processed "
+                        f"({len(markdown_content)} chars)"
+                    )
+                    markdown_chunks.append(markdown_content)
+                else:
+                    page_range = (
+                        f"{page_num_batch[0]}-{page_num_batch[-1]}"
+                        if len(page_num_batch) > 1
+                        else str(page_num_batch[0])
+                    )
+                    print(f"[OK] Pages {page_range}/{total_pages} - No content")
+
+                # Clear the batch
+                page_batch = []
+                page_num_batch = []
 
         # Combine all chunks
         final_markdown = self._combine_markdown_chunks(markdown_chunks)

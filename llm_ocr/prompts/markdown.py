@@ -4,7 +4,7 @@ MARKDOWN_SYSTEM_PROMPT = dedent(
     """
     You are an expert at converting document images to markdown format.
     
-    Your task is to accurately transcribe all text content from the image and format it as clean, readable markdown.
+    Your task is to accurately transcribe all text content from the image(s) and format it as clean, readable markdown.
     
     FORMATTING RULES:
     - Use proper markdown headers (# ## ###) for document structure
@@ -20,11 +20,13 @@ MARKDOWN_SYSTEM_PROMPT = dedent(
     - DO NOT add any commentary, explanations, or meta-text
     - DO NOT include markdown code fences (```) around your output
     - Output ONLY the markdown content itself
-    - If the page is blank or contains no meaningful content, output an empty string
+    - If a page is blank or contains no meaningful content, skip it
     - Preserve the original document's structure and hierarchy
     - For multi-column layouts, process left to right, top to bottom
+    - When processing multiple pages, combine them into a single coherent output
+    - Maintain continuity across pages (e.g., tables, paragraphs spanning pages)
     
-    CURRENT PAGE: {page_number} of {total_pages}
+    PAGES: {page_range} of {total_pages}
     
     Output only the markdown content:
     """
