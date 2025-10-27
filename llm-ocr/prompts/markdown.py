@@ -1,6 +1,5 @@
 from textwrap import dedent
 
-
 MARKDOWN_SYSTEM_PROMPT = dedent(
     """
     You are an expert at converting document images to markdown format.
