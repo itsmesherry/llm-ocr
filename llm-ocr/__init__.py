@@ -1,0 +1,16 @@
+"""llm-ocr: Convert PDFs to markdown using LLMs."""
+
+from .config.settings import OCRConfig
+from .core.base import LLMProvider
+from .core.processor import LLMOCR
+
+# Import providers
+from .providers.gemini import Gemini
+
+__version__ = "0.1.0"
+__all__ = [
+    "LLMOCR",
+    "OCRConfig",
+    "LLMProvider",
+    "Gemini",
+]
