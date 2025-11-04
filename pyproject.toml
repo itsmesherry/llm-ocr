@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llm-ocr"
+name = "ocr-llm"
 version = "1.0.0"
 description = "Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities"
 readme = "README.md"

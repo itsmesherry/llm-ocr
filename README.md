@@ -1,7 +1,7 @@
 # LLM OCR
 
-[![PyPI](https://img.shields.io/pypi/v/llm-ocr)](https://pypi.org/project/llm-ocr/)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/llm-ocr/)
+[![PyPI](https://img.shields.io/pypi/v/ocr-llm)](https://pypi.org/project/ocr-llm/)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/ocr-llm/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Shehryar718/llm-ocr/blob/main/LICENSE)
 
 Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities.
@@ -18,7 +18,7 @@ Convert PDFs to markdown using Large Language Models (LLMs) with vision capabili
 ## Installation
 
 ```bash
-pip install llm-ocr
+pip install ocr-llm
 ```
 
 ### System Dependencies
