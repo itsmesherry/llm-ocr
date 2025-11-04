@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include requirements.txt
+include requirements-dev.txt
+recursive-include llm_ocr *.py
+recursive-exclude tests *
+recursive-exclude htmlcov *
+exclude test.ipynb
+exclude Resume.pdf
+

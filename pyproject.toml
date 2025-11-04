@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-ocr"
+version = "1.0.0"
+description = "Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    {name = "Shehryar Sohail", email = "hafizshehryar88@gmail.com"}
+]
+keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "ai"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+]
+
+dependencies = [
+    "pdf2image>=1.16.0",
+    "Pillow>=11.0.0",
+    "google-genai>=1.0.0",
+    "openai>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.5.0",
+    "pytest-mock>=3.14.0",
+    "black>=24.0.0",
+    "isort>=6.0.0",
+    "flake8>=7.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Shehryar718/llm-ocr"
+Repository = "https://github.com/Shehryar718/llm-ocr"
+Issues = "https://github.com/Shehryar718/llm-ocr/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["llm_ocr*"]
+exclude = ["tests*", "htmlcov*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+

@@ -1,5 +1,9 @@
 # LLM OCR
 
+[![PyPI](https://img.shields.io/pypi/v/llm-ocr)](https://pypi.org/project/llm-ocr/)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/llm-ocr/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Shehryar718/llm-ocr/blob/main/LICENSE)
+
 Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities.
 
 ## Features
@@ -13,9 +17,13 @@ Convert PDFs to markdown using Large Language Models (LLMs) with vision capabili
 
 ## Installation
 
+```bash
+pip install llm-ocr
+```
+
 ### System Dependencies
 
-First, install poppler (required for PDF processing):
+You also need to install poppler (required for PDF processing):
 
 ```bash
 # macOS
@@ -26,14 +34,6 @@ sudo apt-get install poppler-utils
 
 # Fedora/RHEL
 sudo yum install poppler-utils
-```
-
-### Python Dependencies
-
-Then install the required Python packages:
-
-```bash
-pip install -r requirements.txt
 ```
 
 ### Dependencies

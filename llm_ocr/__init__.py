@@ -8,7 +8,7 @@ from .core.processor import LLMOCR
 from .providers.gemini import Gemini
 from .providers.openai import OpenAI
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __all__ = [
     "LLMOCR",
     "OCRConfig",
