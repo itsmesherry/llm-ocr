@@ -6,6 +6,7 @@ from .core.processor import LLMOCR
 
 # Import providers
 from .providers.gemini import Gemini
+from .providers.openai import OpenAI
 
 __version__ = "0.1.0"
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "OCRConfig",
     "LLMProvider",
     "Gemini",
+    "OpenAI",
 ]
