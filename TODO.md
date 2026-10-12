@@ -3,15 +3,11 @@
 Planned work, roughly in priority order. Open an issue or pull request if you
 want to pick one up.
 
-## Before releasing 1.1.0
-
-- [ ] Publish to TestPyPI and install from there
-
 ## Release process
 
 - [ ] Publish from GitHub Actions with PyPI Trusted Publishing instead of a
       local token
-- [ ] Tag releases (`v1.1.0`) and create GitHub Releases from the changelog
+- [ ] Publish to TestPyPI before each release (skipped for 1.1.0)
 - [ ] Keep the version in one place (it is duplicated in `pyproject.toml` and
       `llm_ocr/__init__.py`)
 
