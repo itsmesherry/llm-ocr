@@ -155,4 +155,4 @@ logging.basicConfig(level=logging.INFO)
 
 ## Project
 
-[Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Roadmap](TODO.md) · [MIT License](LICENSE)
+[Changelog](https://github.com/itsmesherry/llm-ocr/blob/main/CHANGELOG.md) · [Contributing](https://github.com/itsmesherry/llm-ocr/blob/main/CONTRIBUTING.md) · [Roadmap](https://github.com/itsmesherry/llm-ocr/blob/main/TODO.md) · [MIT License](https://github.com/itsmesherry/llm-ocr/blob/main/LICENSE)
