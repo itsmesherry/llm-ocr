@@ -63,4 +63,11 @@ package from the tag and uploads it to PyPI through Trusted Publishing. No API
 token is involved, and the workflow refuses to publish if the tag does not match
 the version in `pyproject.toml`.
 
-To rehearse an upload, `make publish-test` sends a local build to TestPyPI.
+CI builds the package, checks its metadata and installs the wheel on every pull
+request, so packaging mistakes surface before a release.
+
+For a risky release (new dependencies, packaging changes), publish a release
+candidate first: use a version such as `1.2.0rc1` and tick "Set as a
+pre-release" on the GitHub Release. `pip install ocr-llm` ignores pre-releases
+unless `--pre` is passed, so regular users are unaffected. Follow up with the
+final version once the candidate checks out.
