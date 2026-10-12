@@ -1,10 +1,28 @@
 # LLM OCR
 
 [![PyPI](https://img.shields.io/pypi/v/ocr-llm)](https://pypi.org/project/ocr-llm/)
+[![CI](https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml/badge.svg)](https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/ocr-llm/)
+[![Downloads](https://img.shields.io/pypi/dm/ocr-llm)](https://pypi.org/project/ocr-llm/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/itsmesherry/llm-ocr/blob/main/LICENSE)
 
-Convert PDFs and images to clean Markdown using Large Language Models (LLMs) with vision capabilities.
+Turn PDFs and images into clean Markdown with vision LLMs: Gemini, OpenAI,
+Claude, or a local model through Ollama. Tables, headings and lists come out as
+Markdown, not as a wall of text.
+
+```bash
+pip install ocr-llm
+export GEMINI_API_KEY="..."   # or OPENAI_API_KEY / ANTHROPIC_API_KEY
+ocr-llm document.pdf -o document.md
+```
+
+Or from Python:
+
+```python
+from llm_ocr import LLMOCR, Gemini
+
+markdown = LLMOCR(Gemini()).convert_sync("document.pdf")
+```
 
 ## Features
 
