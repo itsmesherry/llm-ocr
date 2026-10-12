@@ -1,14 +1,21 @@
-# LLM OCR
+<h1 align="center">LLM OCR</h1>
 
-[![PyPI](https://img.shields.io/pypi/v/ocr-llm)](https://pypi.org/project/ocr-llm/)
-[![CI](https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml/badge.svg)](https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/ocr-llm/)
-[![Downloads](https://img.shields.io/pypi/dm/ocr-llm)](https://pypi.org/project/ocr-llm/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/itsmesherry/llm-ocr/blob/main/LICENSE)
+<p align="center">
+  Turn PDFs and images into clean Markdown with vision LLMs:<br>
+  Gemini, OpenAI, Claude, or a local model through Ollama.
+</p>
 
-Turn PDFs and images into clean Markdown with vision LLMs: Gemini, OpenAI,
-Claude, or a local model through Ollama. Tables, headings and lists come out as
-Markdown, not as a wall of text.
+<p align="center">
+  <a href="https://pypi.org/project/ocr-llm/"><img alt="PyPI" src="https://img.shields.io/pypi/v/ocr-llm"></a>
+  <a href="https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/itsmesherry/llm-ocr/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://pypi.org/project/ocr-llm/"><img alt="Python" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue"></a>
+  <a href="https://pypi.org/project/ocr-llm/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/ocr-llm"></a>
+  <a href="https://github.com/itsmesherry/llm-ocr/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
+
+<p align="center">
+  <img alt="A scanned order summary on the left and the Markdown produced by ocr-llm on the right" src="https://raw.githubusercontent.com/itsmesherry/llm-ocr/main/docs/demo.png" width="900">
+</p>
 
 ```bash
 pip install ocr-llm
