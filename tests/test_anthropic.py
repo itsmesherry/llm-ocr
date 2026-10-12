@@ -18,7 +18,7 @@ class TestAnthropicProvider:
         with patch("llm_ocr.providers.anthropic.AsyncAnthropic") as mock_client:
             provider = Anthropic(api_key=mock_api_key)
             assert provider.api_key == mock_api_key
-            assert provider.model == Anthropic.CLAUDE_OPUS_5_5
+            assert provider.model == Anthropic.CLAUDE_SONNET_5_5
             assert provider.max_tokens == 64000
             mock_client.assert_called_once_with(api_key=mock_api_key)
 
@@ -77,7 +77,7 @@ class TestAnthropicProvider:
             mock_anthropic_client.messages.stream.assert_called_once()
 
             call_args = mock_anthropic_client.messages.stream.call_args
-            assert call_args.kwargs["model"] == Anthropic.CLAUDE_OPUS_5_5
+            assert call_args.kwargs["model"] == Anthropic.CLAUDE_SONNET_5_5
             assert call_args.kwargs["max_tokens"] == 64000
 
             messages = call_args.kwargs["messages"]

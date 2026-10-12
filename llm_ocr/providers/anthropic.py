@@ -20,8 +20,8 @@ class Anthropic(LLMProvider):
     Requires the optional dependency: pip install "ocr-llm[anthropic]"
 
     Supported models:
-    - claude-opus-5-5 (default, best quality)
-    - claude-sonnet-5-5 (balanced)
+    - claude-sonnet-5-5 (default, balanced)
+    - claude-opus-5-5 (best quality)
     - claude-haiku-5-5 (fastest, cheapest)
 
     Any other model identifier can be passed as a plain string.
@@ -35,7 +35,7 @@ class Anthropic(LLMProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = CLAUDE_OPUS_5_5,
+        model: str = CLAUDE_SONNET_5_5,
         max_tokens: int = 64000,
         **kwargs,
     ):
@@ -44,7 +44,7 @@ class Anthropic(LLMProvider):
 
         Args:
             api_key: Anthropic API key. If None, reads from ANTHROPIC_API_KEY env var
-            model: Model to use. Use Anthropic.CLAUDE_OPUS_5_5, etc.
+            model: Model to use. Use Anthropic.CLAUDE_SONNET_5_5, etc.
             max_tokens: Maximum tokens to generate per request (default: 64000).
                 This is a ceiling, not a target; it also covers the model's
                 thinking, so keep it generous.

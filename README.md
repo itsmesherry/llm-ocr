@@ -104,7 +104,7 @@ from llm_ocr import LLMOCR, Anthropic
 async def main():
     provider = Anthropic(
         api_key="your-api-key",  # Or set ANTHROPIC_API_KEY env var
-        model=Anthropic.CLAUDE_OPUS_5_5,
+        model=Anthropic.CLAUDE_SONNET_5_5,
     )
 
     async with LLMOCR(provider) as ocr:
@@ -167,8 +167,8 @@ asyncio.run(main())
 - `OpenAI.O1`, `OpenAI.O3`, `OpenAI.O4_MINI`
 
 ### Anthropic
-- `Anthropic.CLAUDE_OPUS_5_5` (`claude-opus-5-5` - default)
-- `Anthropic.CLAUDE_SONNET_5_5` (`claude-sonnet-5-5`)
+- `Anthropic.CLAUDE_OPUS_5_5` (`claude-opus-5-5`)
+- `Anthropic.CLAUDE_SONNET_5_5` (`claude-sonnet-5-5` - default)
 - `Anthropic.CLAUDE_HAIKU_5_5` (`claude-haiku-5-5`)
 
 Providers retire models over time. Any model identifier can be passed as a plain
