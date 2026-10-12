@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    {name = "Shehryar Sohail", email = "hafizshehryar88@gmail.com"}
+    {name = "Shehryar Sohail", email = "sherryyatwork@gmail.com"}
 ]
 keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "anthropic", "claude", "ai"]
 classifiers = [
