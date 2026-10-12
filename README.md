@@ -237,6 +237,10 @@ export GEMINI_API_KEY="your-gemini-api-key"
 export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Planned work is tracked in [TODO.md](TODO.md).
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
