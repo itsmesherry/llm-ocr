@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 
 from google.genai import Client, types
 
-from ..core.base import LLMProvider
+from ..core.base import LLMProvider, OCRResponseError
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,16 @@ class Gemini(LLMProvider):
             resp = await self.aclient.models.generate_content(
                 model=self.model, contents=contents, **self.kwargs
             )
+
+            candidates = getattr(resp, "candidates", None)
+            if (
+                candidates
+                and candidates[0].finish_reason == types.FinishReason.MAX_TOKENS
+            ):
+                raise OCRResponseError(
+                    "Gemini output was truncated at the token limit. "
+                    "Raise max_output_tokens or lower llm_batch_size."
+                )
 
             try:
                 return resp.text or ""

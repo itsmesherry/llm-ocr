@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The OpenAI and Gemini providers raise `OCRResponseError` when the model stops
+  at its output token limit, instead of returning the cut-off text as if it were
+  complete. The Anthropic provider already did this.
+
 ## [1.1.0] - 2026-10-12
 
 ### Added

@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 
 from openai import AsyncOpenAI
 
-from ..core.base import LLMProvider
+from ..core.base import LLMProvider, OCRResponseError
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +127,11 @@ class OpenAI(LLMProvider):
 
             # Extract the text content from the response
             if response.choices and len(response.choices) > 0:
+                if response.choices[0].finish_reason == "length":
+                    raise OCRResponseError(
+                        "OpenAI output was truncated at the token limit. "
+                        "Raise the model's output token limit or lower llm_batch_size."
+                    )
                 message_content = response.choices[0].message.content
                 return message_content or ""
             else:

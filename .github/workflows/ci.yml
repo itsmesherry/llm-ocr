@@ -40,5 +40,6 @@ jobs:
       - run: twine check --strict dist/*
       - name: Install the wheel and run the CLI
         run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           pip install dist/*.whl
-          cd "$RUNNER_TEMP" && ocr-llm --version
+          cd "$RUNNER_TEMP" && test "$(ocr-llm --version)" = "ocr-llm $version"
