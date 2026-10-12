@@ -5,8 +5,6 @@ want to pick one up.
 
 ## Release process
 
-- [ ] After the first release through the publish workflow, delete the old
-      PyPI API token
 - [ ] Keep the version in one place (it is duplicated in `pyproject.toml` and
       `llm_ocr/__init__.py`)
 

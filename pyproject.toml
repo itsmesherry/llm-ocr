@@ -44,9 +44,7 @@ dev = [
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
-    "black>=24.0.0",
     "isort>=6.0.0",
-    "flake8>=7.0.0",
     "mypy>=1.0.0",
     "ruff>=0.10.0",
     "build>=1.0.0",
@@ -74,11 +72,6 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-
-[tool.black]
-line-length = 88
-target-version = ["py39", "py310", "py311", "py312", "py313"]
-include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
