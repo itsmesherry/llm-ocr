@@ -68,6 +68,22 @@ def mock_gemini_client():
 
 
 @pytest.fixture
+def mock_anthropic_client():
+    """Mock Anthropic async client."""
+    client = MagicMock()
+    client.close = AsyncMock()
+
+    mock_response = MagicMock()
+    mock_block = MagicMock()
+    mock_block.text = "# Test Markdown\nSample content"
+    mock_response.content = [mock_block]
+
+    client.messages.create = AsyncMock(return_value=mock_response)
+
+    return client
+
+
+@pytest.fixture
 def set_openai_env_key(mock_api_key, monkeypatch):
     """Set OPENAI_API_KEY environment variable."""
     monkeypatch.setenv("OPENAI_API_KEY", mock_api_key)
@@ -80,10 +96,18 @@ def set_gemini_env_key(mock_api_key, monkeypatch):
 
 
 @pytest.fixture
+def set_anthropic_env_key(mock_api_key, monkeypatch):
+    """Set ANTHROPIC_API_KEY environment variable."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", mock_api_key)
+
+
+@pytest.fixture
 def unset_env_keys(monkeypatch):
     """Remove API key environment variables."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
 
 @pytest.fixture

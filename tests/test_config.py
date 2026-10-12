@@ -15,6 +15,7 @@ class TestOCRConfig:
         assert config.max_pages is None
         assert config.batch_size == 5
         assert config.llm_batch_size == 1
+        assert config.max_concurrency == 4
         assert config.thread_count == 4
         assert config.convert_to_grayscale is False
         assert config.optimize_png is True
@@ -23,6 +24,8 @@ class TestOCRConfig:
         assert config.retry_delay == 1.0
         assert config.output_format == "markdown"
         assert config.include_page_markers is False
+        assert config.custom_prompt is None
+        assert config.additional_instructions is None
 
     def test_custom_values(self):
         """Test setting custom configuration values."""
@@ -31,6 +34,7 @@ class TestOCRConfig:
             max_pages=10,
             batch_size=3,
             llm_batch_size=2,
+            max_concurrency=8,
             thread_count=8,
             convert_to_grayscale=True,
             optimize_png=False,
@@ -39,11 +43,14 @@ class TestOCRConfig:
             retry_delay=2.0,
             output_format="html",
             include_page_markers=True,
+            custom_prompt="Custom prompt",
+            additional_instructions="Tables only",
         )
         assert config.dpi == 300
         assert config.max_pages == 10
         assert config.batch_size == 3
         assert config.llm_batch_size == 2
+        assert config.max_concurrency == 8
         assert config.thread_count == 8
         assert config.convert_to_grayscale is True
         assert config.optimize_png is False
@@ -52,6 +59,8 @@ class TestOCRConfig:
         assert config.retry_delay == 2.0
         assert config.output_format == "html"
         assert config.include_page_markers is True
+        assert config.custom_prompt == "Custom prompt"
+        assert config.additional_instructions == "Tables only"
 
     def test_validate_valid_config(self):
         """Test validation with valid configuration."""
@@ -94,10 +103,16 @@ class TestOCRConfig:
         with pytest.raises(ValueError, match="LLM batch size must be at least 1"):
             config.validate()
 
+    def test_validate_max_concurrency_zero(self):
+        """Test validation fails when max_concurrency is zero."""
+        config = OCRConfig(max_concurrency=0)
+        with pytest.raises(ValueError, match="Max concurrency must be at least 1"):
+            config.validate()
+
     def test_validate_boundary_values(self):
         """Test validation with boundary values."""
         # Minimum valid values
-        config = OCRConfig(dpi=72, batch_size=1, llm_batch_size=1)
+        config = OCRConfig(dpi=72, batch_size=1, llm_batch_size=1, max_concurrency=1)
         config.validate()  # Should not raise
 
         # Maximum valid DPI

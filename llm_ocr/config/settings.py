@@ -10,6 +10,7 @@ class OCRConfig:
     max_pages: Optional[int] = None
     batch_size: int = 5  # PDF to image conversion batch size
     llm_batch_size: int = 1  # Number of pages to send to LLM at once
+    max_concurrency: int = 4  # Maximum concurrent LLM batch requests
     thread_count: int = 4
     convert_to_grayscale: bool = False
     optimize_png: bool = True
@@ -18,6 +19,8 @@ class OCRConfig:
     retry_delay: float = 1.0
     output_format: str = "markdown"
     include_page_markers: bool = False
+    custom_prompt: Optional[str] = None
+    additional_instructions: Optional[str] = None
 
     def validate(self):
         """Validate configuration."""
@@ -27,3 +30,5 @@ class OCRConfig:
             raise ValueError("Batch size must be at least 1")
         if self.llm_batch_size < 1:
             raise ValueError("LLM batch size must be at least 1")
+        if self.max_concurrency < 1:
+            raise ValueError("Max concurrency must be at least 1")

@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ocr-llm"
-version = "1.0.0"
-description = "Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities"
+version = "1.1.0"
+description = "Convert PDFs and images to markdown using Large Language Models (LLMs) with vision capabilities"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
     {name = "Shehryar Sohail", email = "hafizshehryar88@gmail.com"}
 ]
-keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "ai"]
+keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "anthropic", "claude", "ai"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Text Processing :: Markup :: Markdown",
     "Topic :: Multimedia :: Graphics :: Graphics Conversion",
@@ -30,14 +32,29 @@ dependencies = [
     "pdf2image>=1.16.0",
     "Pillow>=11.0.0",
     "google-genai>=1.0.0",
-    "openai>=2.0.0",
+    "openai>=1.50.0",
+    "anthropic>=0.40.0",
 ]
 
 [project.optional-dependencies]
+gemini = [
+    "google-genai>=1.0.0",
+]
+openai = [
+    "openai>=1.50.0",
+]
+anthropic = [
+    "anthropic>=0.40.0",
+]
+all = [
+    "google-genai>=1.0.0",
+    "openai>=1.50.0",
+    "anthropic>=0.40.0",
+]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.5.0",
+    "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
     "black>=24.0.0",
     "isort>=6.0.0",
@@ -45,6 +62,10 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.10.0",
 ]
+
+[project.scripts]
+ocr-llm = "llm_ocr.cli:main"
+llm-ocr = "llm_ocr.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Shehryar718/llm-ocr"
@@ -65,7 +86,7 @@ asyncio_mode = "auto"
 
 [tool.black]
 line-length = 88
-target-version = ["py39", "py310", "py311"]
+target-version = ["py310", "py311", "py312", "py313"]
 include = '\.pyi?$'
 
 [tool.isort]
@@ -73,12 +94,15 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
 
