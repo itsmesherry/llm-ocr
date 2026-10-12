@@ -56,10 +56,10 @@ ocr-llm = "llm_ocr.cli:main"
 llm-ocr = "llm_ocr.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Shehryar718/llm-ocr"
-Repository = "https://github.com/Shehryar718/llm-ocr"
-Changelog = "https://github.com/Shehryar718/llm-ocr/blob/main/CHANGELOG.md"
-Issues = "https://github.com/Shehryar718/llm-ocr/issues"
+Homepage = "https://github.com/itsmesherry/llm-ocr"
+Repository = "https://github.com/itsmesherry/llm-ocr"
+Changelog = "https://github.com/itsmesherry/llm-ocr/blob/main/CHANGELOG.md"
+Issues = "https://github.com/itsmesherry/llm-ocr/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
