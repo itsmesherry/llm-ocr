@@ -25,3 +25,20 @@ jobs:
       - run: ruff check .
       - run: mypy llm_ocr
       - run: pytest
+
+  build:
+    # Catches packaging mistakes (bad metadata, missing files, broken entry
+    # point) on every pull request instead of at release time.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - name: Install the wheel and run the CLI
+        run: |
+          pip install dist/*.whl
+          cd "$RUNNER_TEMP" && ocr-llm --version
