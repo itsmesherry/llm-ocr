@@ -3,17 +3,12 @@
 Planned work, roughly in priority order. Open an issue or pull request if you
 want to pick one up.
 
-## Release process
-
-- [ ] Keep the version in one place (it is duplicated in `pyproject.toml` and
-      `llm_ocr/__init__.py`)
-
 ## Library
 
 - [ ] Convert every page of multi-page TIFFs and every frame of GIFs (only the
       first is converted today)
-- [ ] Detect truncated output from OpenAI (`finish_reason == "length"`) and
-      Gemini, as the Anthropic provider already does
+- [ ] Decide how to report blocked output from OpenAI (`content_filter`) and
+      Gemini (`SAFETY`, `RECITATION`); those pages currently come back empty
 - [ ] Refresh the OpenAI and Gemini model constants and deprecate the ones for
       retired models
 - [ ] Do not retry errors that cannot succeed (invalid API key, 400/401/403);

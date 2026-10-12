@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from llm_ocr.core.base import OCRResponseError
 from llm_ocr.providers.openai import OpenAI
 
 
@@ -243,3 +244,18 @@ class TestOpenAIProvider:
             provider = OpenAI(api_key=mock_api_key)
             await provider.aclose()
             mock_openai_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_content_truncated_raises(
+        self, mock_api_key, sample_image_bytes, mock_openai_client
+    ):
+        """Output cut off at the token limit must raise, not return partial text."""
+        response = mock_openai_client.chat.completions.create.return_value
+        response.choices[0].finish_reason = "length"
+
+        with patch(
+            "llm_ocr.providers.openai.AsyncOpenAI", return_value=mock_openai_client
+        ):
+            provider = OpenAI(api_key=mock_api_key)
+            with pytest.raises(OCRResponseError, match="truncated"):
+                await provider.generate_content("Test prompt", [sample_image_bytes])

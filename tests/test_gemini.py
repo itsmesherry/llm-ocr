@@ -3,7 +3,9 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from google.genai import types
 
+from llm_ocr.core.base import OCRResponseError
 from llm_ocr.providers.gemini import Gemini
 
 
@@ -252,3 +254,17 @@ class TestGeminiProvider:
 
             provider = Gemini(api_key=mock_api_key)
             await provider.aclose()  # Should not raise any errors
+
+    @pytest.mark.asyncio
+    async def test_generate_content_truncated_raises(
+        self, mock_api_key, sample_image_bytes, mock_gemini_client
+    ):
+        """Output cut off at the token limit must raise, not return partial text."""
+        response = mock_gemini_client.models.generate_content.return_value
+        response.candidates = [MagicMock(finish_reason=types.FinishReason.MAX_TOKENS)]
+
+        with patch("llm_ocr.providers.gemini.Client") as mock_client_class:
+            mock_client_class.return_value.aio = mock_gemini_client
+            provider = Gemini(api_key=mock_api_key)
+            with pytest.raises(OCRResponseError, match="truncated"):
+                await provider.generate_content("Test prompt", [sample_image_bytes])
