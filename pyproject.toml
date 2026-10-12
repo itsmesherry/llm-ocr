@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ocr-llm"
-version = "1.0.0"
-description = "Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities"
+version = "1.1.0"
+description = "Convert PDFs and images to markdown using Large Language Models (LLMs) with vision capabilities"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
     {name = "Shehryar Sohail", email = "hafizshehryar88@gmail.com"}
 ]
-keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "ai"]
+keywords = ["ocr", "pdf", "markdown", "llm", "vision", "gemini", "openai", "anthropic", "claude", "ai"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Text Processing :: Markup :: Markdown",
     "Topic :: Multimedia :: Graphics :: Graphics Conversion",
@@ -34,22 +35,33 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+anthropic = [
+    "anthropic>=0.40.0",
+]
 dev = [
+    "anthropic>=0.40.0",
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.5.0",
+    "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
     "black>=24.0.0",
     "isort>=6.0.0",
     "flake8>=7.0.0",
     "mypy>=1.0.0",
     "ruff>=0.10.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
+[project.scripts]
+ocr-llm = "llm_ocr.cli:main"
+llm-ocr = "llm_ocr.cli:main"
+
 [project.urls]
-Homepage = "https://github.com/Shehryar718/llm-ocr"
-Repository = "https://github.com/Shehryar718/llm-ocr"
-Issues = "https://github.com/Shehryar718/llm-ocr/issues"
+Homepage = "https://github.com/itsmesherry/llm-ocr"
+Repository = "https://github.com/itsmesherry/llm-ocr"
+Changelog = "https://github.com/itsmesherry/llm-ocr/blob/main/CHANGELOG.md"
+Issues = "https://github.com/itsmesherry/llm-ocr/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -65,7 +77,7 @@ asyncio_mode = "auto"
 
 [tool.black]
 line-length = 88
-target-version = ["py39", "py310", "py311"]
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 include = '\.pyi?$'
 
 [tool.isort]
@@ -73,7 +85,7 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -81,4 +93,7 @@ disallow_untyped_defs = false
 [tool.ruff]
 line-length = 88
 target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
 

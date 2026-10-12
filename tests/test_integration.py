@@ -13,11 +13,12 @@ class TestPackageImports:
 
     def test_import_main_classes(self):
         """Test importing main classes from package root."""
-        from llm_ocr import LLMOCR, Gemini, LLMProvider, OCRConfig, OpenAI
+        from llm_ocr import LLMOCR, Anthropic, Gemini, LLMProvider, OCRConfig, OpenAI
 
         assert LLMOCR is not None
         assert OpenAI is not None
         assert Gemini is not None
+        assert Anthropic is not None
         assert OCRConfig is not None
         assert LLMProvider is not None
 
@@ -36,6 +37,7 @@ class TestPackageImports:
             "LLMOCR",
             "OCRConfig",
             "LLMProvider",
+            "Anthropic",
             "Gemini",
             "OpenAI",
         ]

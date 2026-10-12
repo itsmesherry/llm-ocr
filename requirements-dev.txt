@@ -1,5 +1,6 @@
 # Development dependencies
 -r requirements.txt
+anthropic>=0.40.0  # optional provider, needed for its tests
 
 # Testing
 pytest>=8.0.0
@@ -14,10 +15,7 @@ isort>=6.0.0
 mypy>=1.0.0
 ruff>=0.10.0
 
-# Pin urllib3 to v1.x to avoid LibreSSL warnings on macOS
-urllib3<2.0.0
 
-# Documentation (optional)
-# sphinx>=7.1.0
-# sphinx-rtd-theme>=1.3.0
-
+# Packaging (make build / make publish)
+build>=1.0.0
+twine>=5.0.0

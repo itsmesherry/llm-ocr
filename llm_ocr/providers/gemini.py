@@ -1,9 +1,12 @@
+import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from google.genai import Client, types
 
 from ..core.base import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 class Gemini(LLMProvider):
@@ -13,6 +16,7 @@ class Gemini(LLMProvider):
     Supported models:
     - gemini-2.5-pro (recommended, best quality)
     - gemini-2.5-flash (fast)
+    - gemini-2.5-flash-lite
     - gemini-2.0-pro
     - gemini-2.0-flash
     """
@@ -20,6 +24,7 @@ class Gemini(LLMProvider):
     # Available models with their identifiers
     FLASH_2_5 = "gemini-2.5-flash"
     PRO_2_5 = "gemini-2.5-pro"
+    FLASH_LITE_2_5 = "gemini-2.5-flash-lite"
     FLASH_2_0 = "gemini-2.0-flash"
     PRO_2_0 = "gemini-2.0-pro"
 
@@ -63,7 +68,7 @@ class Gemini(LLMProvider):
         ]
 
         # Combine prompt and all images
-        contents = [prompt] + image_parts
+        contents: List[Any] = [prompt] + image_parts
 
         try:
             resp = await self.aclient.models.generate_content(
@@ -73,11 +78,11 @@ class Gemini(LLMProvider):
             try:
                 return resp.text or ""
             except (ValueError, AttributeError):
-                print("[WARNING] Gemini returned no content")
+                logger.warning("Gemini returned no content")
                 return ""
 
         except Exception as err:
-            print(f"[ERROR] Gemini generation failed: {err}")
+            logger.error("Gemini generation failed: %s", err)
             raise
 
     async def aclose(self):

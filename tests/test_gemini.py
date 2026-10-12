@@ -74,6 +74,7 @@ class TestGeminiProvider:
         """Test that model constants are defined correctly."""
         assert Gemini.FLASH_2_5 == "gemini-2.5-flash"
         assert Gemini.PRO_2_5 == "gemini-2.5-pro"
+        assert Gemini.FLASH_LITE_2_5 == "gemini-2.5-flash-lite"
         assert Gemini.FLASH_2_0 == "gemini-2.0-flash"
         assert Gemini.PRO_2_0 == "gemini-2.0-pro"
 

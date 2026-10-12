@@ -1,19 +1,20 @@
 # LLM OCR
 
 [![PyPI](https://img.shields.io/pypi/v/ocr-llm)](https://pypi.org/project/ocr-llm/)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/ocr-llm/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Shehryar718/llm-ocr/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/ocr-llm/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/itsmesherry/llm-ocr/blob/main/LICENSE)
 
-Convert PDFs to markdown using Large Language Models (LLMs) with vision capabilities.
+Convert PDFs and images to clean Markdown using Large Language Models (LLMs) with vision capabilities.
 
 ## Features
 
-- 🔍 High-quality OCR using vision-capable LLMs
-- 📄 Batch processing of multiple PDF pages
-- 🔌 Multiple provider support (Gemini, OpenAI)
-- ⚙️ Configurable processing settings
-- 🔄 Automatic retry logic for transient errors
-- 📝 Clean markdown output
+- 🔍 **High-quality OCR** using vision-capable LLMs
+- 🔌 **Multiple Providers**: Google Gemini, OpenAI, Anthropic Claude, and OpenAI-compatible local/cloud endpoints (Ollama, vLLM, OpenRouter, Groq)
+- ⚡ **Concurrent Processing**: Parallel LLM batch execution (`max_concurrency`) for faster multi-page PDF conversion
+- 🖼️ **Flexible Inputs**: Convert PDFs, standalone images (`.png`, `.jpg`, `.webp`, `.tiff`), PIL Images, or in-memory `bytes`
+- 💻 **CLI Included**: Convert documents directly from the terminal with `ocr-llm` / `llm-ocr`
+- 🎯 **Custom Prompts**: Override the system prompt or append custom instructions (e.g., tables only, LaTeX math, translation)
+- 🔄 **Automatic Retries** & synchronous convenience wrapper (`convert_sync`)
 
 ## Installation
 
@@ -21,9 +22,13 @@ Convert PDFs to markdown using Large Language Models (LLMs) with vision capabili
 pip install ocr-llm
 ```
 
-### System Dependencies
+Gemini and OpenAI support is included. Anthropic Claude is an optional extra:
 
-You also need to install poppler (required for PDF processing):
+```bash
+pip install "ocr-llm[anthropic]"
+```
+
+Install `poppler` (required for PDF-to-image conversion):
 
 ```bash
 # macOS
@@ -36,87 +41,138 @@ sudo apt-get install poppler-utils
 sudo yum install poppler-utils
 ```
 
-### Dependencies
+## CLI Usage
 
-The library requires:
+Convert PDFs or images straight from the terminal:
 
-- **System**: `poppler-utils` for PDF processing
-- **Python**:
-  - `google-genai` for Gemini provider
-  - `openai` for OpenAI provider
-  - `pdf2image` and `Pillow` for PDF processing
+```bash
+# Auto-detects provider from GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
+ocr-llm document.pdf -o output.md
 
-## Quick Start
+# Specify provider, model, and concurrency
+ocr-llm document.pdf -o output.md --provider gemini --model gemini-2.5-flash --concurrency 4
 
-### Using OpenAI
+# Use Anthropic Claude
+ocr-llm invoice.png -o invoice.md --provider anthropic --instructions "Extract all tables accurately"
+
+# Use local Ollama vision model
+ocr-llm document.pdf -o output.md --provider openai --base-url http://localhost:11434/v1 --model llava
+```
+
+## Quick Start (Python API)
+
+### Synchronous Usage (`convert_sync`)
+
+```python
+from llm_ocr import LLMOCR, Gemini
+
+provider = Gemini(model=Gemini.FLASH_2_5)  # Reads GEMINI_API_KEY from env
+ocr = LLMOCR(provider)
+
+markdown = ocr.convert_sync("document.pdf", output_path="output.md")
+print(markdown)
+```
+
+### Async Usage with OpenAI
 
 ```python
 import asyncio
 from llm_ocr import LLMOCR, OpenAI
 
+
 async def main():
-    # Initialize OpenAI provider
     provider = OpenAI(
         api_key="your-api-key",  # Or set OPENAI_API_KEY env var
-        model=OpenAI.GPT_4O_MINI
+        model=OpenAI.GPT_4O_MINI,
     )
 
-    # Create OCR processor
     async with LLMOCR(provider) as ocr:
-        # Convert PDF to markdown
-        markdown = await ocr.convert(
-            "document.pdf",
-            output_path="output.md"
-        )
+        markdown = await ocr.convert("document.pdf", output_path="output.md")
         print(markdown)
+
 
 asyncio.run(main())
 ```
 
-### Using Gemini
+### Using Anthropic Claude
+
+```python
+import asyncio
+from llm_ocr import LLMOCR, Anthropic
+
+
+async def main():
+    provider = Anthropic(
+        api_key="your-api-key",  # Or set ANTHROPIC_API_KEY env var
+        model=Anthropic.CLAUDE_SONNET_5_5,
+    )
+
+    async with LLMOCR(provider) as ocr:
+        markdown = await ocr.convert("document.pdf", output_path="output.md")
+        print(markdown)
+
+
+asyncio.run(main())
+```
+
+### Using Local / OpenAI-Compatible Models (Ollama, vLLM, OpenRouter)
+
+```python
+from llm_ocr import LLMOCR, OpenAI
+
+provider = OpenAI(
+    base_url="http://localhost:11434/v1",  # Or set OPENAI_BASE_URL env var
+    model="qwen2.5vl",
+)
+
+ocr = LLMOCR(provider)
+markdown = ocr.convert_sync("document.pdf")
+```
+
+## Converting Images & In-Memory Bytes
 
 ```python
 import asyncio
 from llm_ocr import LLMOCR, Gemini
 
-async def main():
-    # Initialize Gemini provider
-    provider = Gemini(
-        api_key="your-api-key",  # Or set GEMINI_API_KEY env var
-        model=Gemini.FLASH_2_5  # Or Gemini.PRO_2_5 for best quality
-    )
 
-    # Create OCR processor
-    async with LLMOCR(provider) as ocr:
-        # Convert PDF to markdown
-        markdown = await ocr.convert(
-            "document.pdf",
-            output_path="output.md"
-        )
-        print(markdown)
+async def main():
+    async with LLMOCR(Gemini()) as ocr:
+        # 1. Direct image file (.png, .jpg, .webp, .tiff, etc.)
+        md_from_image = await ocr.convert("receipt.png")
+
+        # 2. In-memory PDF or image bytes (e.g. FastAPI UploadFile or S3 download)
+        with open("document.pdf", "rb") as f:
+            pdf_bytes = f.read()
+        md_from_bytes = await ocr.convert_bytes(pdf_bytes)
+
 
 asyncio.run(main())
 ```
 
 ## Available Models
 
-### OpenAI
-
-- `OpenAI.GPT_4O`
-- `OpenAI.GPT_4O_MINI` (default)
-
-Additional models: `O1`, `O3`, `O4_MINI`, `GPT_5`, `GPT_5_MINI`, `GPT_4_1`, and more.
-
-> See `llm_ocr/providers/openai.py` for the complete list.
-
 ### Gemini
+- `Gemini.PRO_2_5` (`gemini-2.5-pro`)
+- `Gemini.FLASH_2_5` (`gemini-2.5-flash` - default)
+- `Gemini.FLASH_LITE_2_5` (`gemini-2.5-flash-lite`)
+- `Gemini.PRO_2_0` (`gemini-2.0-pro`)
+- `Gemini.FLASH_2_0` (`gemini-2.0-flash`)
 
-- `Gemini.PRO_2_5`
-- `Gemini.FLASH_2_5` (default)
+### OpenAI
+- `OpenAI.GPT_4O` (`gpt-4o`)
+- `OpenAI.GPT_4O_MINI` (`gpt-4o-mini` - default)
+- `OpenAI.GPT_5`, `OpenAI.GPT_5_MINI`, `OpenAI.GPT_5_NANO`
+- `OpenAI.GPT_4_1`, `OpenAI.GPT_4_1_MINI`, `OpenAI.GPT_4_1_NANO`
+- `OpenAI.O1`, `OpenAI.O3`, `OpenAI.O4_MINI`
 
-Additional models: `PRO_2_0`, `FLASH_2_0`.
+### Anthropic
+- `Anthropic.CLAUDE_OPUS_5_5` (`claude-opus-5-5`)
+- `Anthropic.CLAUDE_SONNET_5_5` (`claude-sonnet-5-5` - default)
+- `Anthropic.CLAUDE_HAIKU_5_5` (`claude-haiku-5-5`)
 
-> See `llm_ocr/providers/gemini.py` for the complete list.
+Providers retire models over time. Any model identifier can be passed as a plain
+string (`model="..."`), so you are never limited to the constants above.
 
 ## Configuration
 
@@ -126,13 +182,15 @@ Customize the OCR processing with `OCRConfig`:
 from llm_ocr import LLMOCR, OpenAI, OCRConfig
 
 config = OCRConfig(
-    dpi=300,                    # Higher DPI for better quality
-    max_pages=10,               # Limit number of pages to process
-    llm_batch_size=2,           # Send 2 pages to LLM at once
+    dpi=300,  # Higher DPI for better quality
+    max_pages=10,  # Limit number of pages to process
+    llm_batch_size=2,  # Send 2 pages to LLM at once
+    max_concurrency=4,  # Process up to 4 batches concurrently
     convert_to_grayscale=True,  # Convert images to grayscale
-    max_retries=3,              # Retry failed requests
-    retry_delay=1.0,            # Wait 1 second between retries
-    include_page_markers=True,  # Add page markers in output
+    max_retries=3,  # Retry failed requests
+    retry_delay=1.0,  # Wait 1 second between retries
+    include_page_markers=True,  # Add <!-- Page N --> markers in output
+    additional_instructions="Preserve all mathematical formulas in LaTeX.",
 )
 
 provider = OpenAI()
@@ -141,81 +199,32 @@ ocr = LLMOCR(provider, config=config)
 
 ### Configuration Options
 
-| Option                 | Default | Description                                |
-| ---------------------- | ------- | ------------------------------------------ |
-| `dpi`                  | 200     | DPI for PDF to image conversion (72-600)   |
-| `max_pages`            | None    | Maximum number of pages to process         |
-| `batch_size`           | 5       | PDF to image conversion batch size         |
-| `llm_batch_size`       | 1       | Number of pages to send to LLM at once     |
-| `thread_count`         | 4       | Number of threads for PDF conversion       |
-| `convert_to_grayscale` | False   | Convert images to grayscale                |
-| `optimize_png`         | True    | Optimize PNG compression                   |
-| `use_cropbox`          | True    | Use PDF cropbox for conversion             |
-| `max_retries`          | 3       | Maximum retry attempts for failed requests |
-| `retry_delay`          | 1.0     | Delay between retries in seconds           |
-| `include_page_markers` | False   | Add page markers in markdown output        |
+| Option                    | Default | Description                                               |
+| ------------------------- | ------- | --------------------------------------------------------- |
+| `dpi`                     | 200     | DPI for PDF to image conversion (72–600)                  |
+| `max_pages`               | None    | Maximum number of pages to process                        |
+| `batch_size`              | 5       | PDF to image conversion batch size                        |
+| `llm_batch_size`          | 1       | Number of pages to send to LLM at once                    |
+| `max_concurrency`         | 4       | Maximum concurrent LLM requests                           |
+| `thread_count`            | 4       | Number of threads for PDF conversion                      |
+| `convert_to_grayscale`    | False   | Convert images to grayscale                               |
+| `optimize_png`            | True    | Optimize PNG compression                                  |
+| `use_cropbox`             | True    | Use PDF cropbox for conversion                            |
+| `max_retries`             | 3       | Maximum retry attempts for failed requests                |
+| `retry_delay`             | 1.0     | Delay between retries in seconds                          |
+| `include_page_markers`    | False   | Add page markers in markdown output                       |
+| `custom_prompt`           | None    | Override the default system prompt                        |
+| `additional_instructions` | None    | Extra instructions appended to the prompt                 |
 
-## Advanced Usage
+## Progress Output
 
-### Custom Provider Parameters
-
-Pass additional parameters to the LLM provider:
-
-```python
-# OpenAI with custom parameters
-provider = OpenAI(
-    model=OpenAI.GPT_4O,
-    max_tokens=4000,
-    temperature=0.0,
-)
-
-# Gemini with custom parameters
-provider = Gemini(
-    model=Gemini.PRO_2_5,
-    temperature=0.0,
-)
-```
-
-### Processing Multiple Documents
+Since 1.1.0 progress is reported through the standard `logging` module instead of
+`print()`. To see it:
 
 ```python
-import asyncio
-from pathlib import Path
-from llm_ocr import LLMOCR, OpenAI
+import logging
 
-async def process_documents():
-    provider = OpenAI()
-
-    async with LLMOCR(provider) as ocr:
-        pdf_files = Path("pdfs").glob("*.pdf")
-
-        for pdf_file in pdf_files:
-            output_file = pdf_file.with_suffix(".md")
-            await ocr.convert(pdf_file, output_path=output_file)
-            print(f"Converted {pdf_file.name} -> {output_file.name}")
-
-asyncio.run(process_documents())
-```
-
-### Without Context Manager
-
-If you prefer not to use the context manager:
-
-```python
-import asyncio
-from llm_ocr import LLMOCR, OpenAI
-
-async def main():
-    provider = OpenAI()
-    ocr = LLMOCR(provider)
-
-    try:
-        markdown = await ocr.convert("document.pdf")
-        print(markdown)
-    finally:
-        await ocr.aclose()  # Don't forget to close!
-
-asyncio.run(main())
+logging.basicConfig(level=logging.INFO)
 ```
 
 ## Environment Variables
@@ -223,47 +232,19 @@ asyncio.run(main())
 Set API keys via environment variables:
 
 ```bash
-# For OpenAI
 export OPENAI_API_KEY="your-openai-api-key"
-
-# For Gemini
 export GEMINI_API_KEY="your-gemini-api-key"
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
-Then use providers without passing API keys:
+## Contributing
 
-```python
-# API key read from environment variable
-provider = OpenAI()  # Uses OPENAI_API_KEY
-# or
-provider = Gemini()  # Uses GEMINI_API_KEY
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md). Planned work is tracked in [TODO.md](TODO.md).
 
-## Error Handling
+## Changelog
 
-The library uses a fail-fast approach with automatic retries:
-
-```python
-import asyncio
-from llm_ocr import LLMOCR, OpenAI, OCRConfig
-
-async def main():
-    provider = OpenAI()
-    config = OCRConfig(
-        max_retries=5,      # Retry up to 5 times
-        retry_delay=2.0,    # Wait 2 seconds between retries
-    )
-
-    async with LLMOCR(provider, config) as ocr:
-        try:
-            markdown = await ocr.convert("document.pdf")
-            print(markdown)
-        except Exception as e:
-            print(f"Failed to process document: {e}")
-
-asyncio.run(main())
-```
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-See LICENSE file for details.
+See [LICENSE](LICENSE) file for details.

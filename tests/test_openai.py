@@ -31,6 +31,27 @@ class TestOpenAIProvider:
         with pytest.raises(ValueError, match="OpenAI API key is required"):
             OpenAI()
 
+    def test_init_with_base_url_and_no_api_key(self, unset_env_keys):
+        """Test initialization with base_url defaults api_key to 'not-needed'."""
+        with patch("llm_ocr.providers.openai.AsyncOpenAI") as mock_client:
+            provider = OpenAI(base_url="http://localhost:11434/v1", model="llava")
+            assert provider.api_key == "not-needed"
+            assert provider.base_url == "http://localhost:11434/v1"
+            assert provider.model == "llava"
+            mock_client.assert_called_once_with(
+                api_key="not-needed", base_url="http://localhost:11434/v1"
+            )
+
+    def test_init_with_env_base_url(self, unset_env_keys, monkeypatch):
+        """Test initialization with OPENAI_BASE_URL environment variable."""
+        monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+        with patch("llm_ocr.providers.openai.AsyncOpenAI") as mock_client:
+            provider = OpenAI(api_key="custom-key")
+            assert provider.base_url == "http://localhost:8000/v1"
+            mock_client.assert_called_once_with(
+                api_key="custom-key", base_url="http://localhost:8000/v1"
+            )
+
     def test_init_with_custom_model(self, mock_api_key):
         """Test initialization with custom model."""
         with patch("llm_ocr.providers.openai.AsyncOpenAI"):

@@ -2,6 +2,14 @@ from abc import ABC, abstractmethod
 from typing import List
 
 
+class OCRResponseError(RuntimeError):
+    """
+    The provider returned an unusable response (e.g. truncated or refused).
+
+    Unlike transient API errors, these are not retried.
+    """
+
+
 class LLMProvider(ABC):
     """Abstract base class for LLM providers."""
 
