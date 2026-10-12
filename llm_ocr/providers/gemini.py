@@ -19,9 +19,6 @@ class Gemini(LLMProvider):
     - gemini-2.5-flash-lite
     - gemini-2.0-pro
     - gemini-2.0-flash
-    - gemini-2.0-flash-lite
-    - gemini-1.5-pro
-    - gemini-1.5-flash
     """
 
     # Available models with their identifiers
@@ -29,10 +26,7 @@ class Gemini(LLMProvider):
     PRO_2_5 = "gemini-2.5-pro"
     FLASH_LITE_2_5 = "gemini-2.5-flash-lite"
     FLASH_2_0 = "gemini-2.0-flash"
-    FLASH_LITE_2_0 = "gemini-2.0-flash-lite"
     PRO_2_0 = "gemini-2.0-pro"
-    FLASH_1_5 = "gemini-1.5-flash"
-    PRO_1_5 = "gemini-1.5-pro"
 
     def __init__(self, api_key: Optional[str] = None, model: str = FLASH_2_5, **kwargs):
         """

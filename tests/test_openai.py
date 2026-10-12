@@ -87,10 +87,8 @@ class TestOpenAIProvider:
         assert OpenAI.O4_MINI == "o4-mini"
         assert OpenAI.O1 == "o1"
         assert OpenAI.O3 == "o3"
-        assert OpenAI.O3_MINI == "o3-mini"
         assert OpenAI.GPT_4O == "gpt-4o"
         assert OpenAI.GPT_4O_MINI == "gpt-4o-mini"
-        assert OpenAI.CHATGPT_4O_LATEST == "chatgpt-4o-latest"
 
     @pytest.mark.asyncio
     async def test_generate_content_single_image(

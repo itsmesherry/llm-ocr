@@ -1,5 +1,6 @@
 # Development dependencies
 -r requirements.txt
+anthropic>=0.40.0  # optional provider, needed for its tests
 
 # Testing
 pytest>=8.0.0

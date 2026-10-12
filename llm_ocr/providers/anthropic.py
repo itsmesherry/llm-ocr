@@ -8,7 +8,7 @@ try:
 except ImportError:  # pragma: no cover
     AsyncAnthropic = None  # type: ignore[assignment,misc]
 
-from ..core.base import LLMProvider
+from ..core.base import LLMProvider, OCRResponseError
 
 logger = logging.getLogger(__name__)
 
@@ -17,26 +17,26 @@ class Anthropic(LLMProvider):
     """
     Anthropic Claude provider for OCR.
 
+    Requires the optional dependency: pip install "ocr-llm[anthropic]"
+
     Supported models:
-    - claude-sonnet-4-20250514 (default, recommended)
-    - claude-opus-4-20250514
-    - claude-3-7-sonnet-latest
-    - claude-3-5-sonnet-latest
-    - claude-3-5-haiku-latest
+    - claude-opus-5-5 (default, best quality)
+    - claude-sonnet-5-5 (balanced)
+    - claude-haiku-5-5 (fastest, cheapest)
+
+    Any other model identifier can be passed as a plain string.
     """
 
     # Available models with their identifiers
-    CLAUDE_SONNET_4 = "claude-sonnet-4-20250514"
-    CLAUDE_OPUS_4 = "claude-opus-4-20250514"
-    CLAUDE_3_7_SONNET = "claude-3-7-sonnet-latest"
-    CLAUDE_3_5_SONNET = "claude-3-5-sonnet-latest"
-    CLAUDE_3_5_HAIKU = "claude-3-5-haiku-latest"
+    CLAUDE_OPUS_5_5 = "claude-opus-5-5"
+    CLAUDE_SONNET_5_5 = "claude-sonnet-5-5"
+    CLAUDE_HAIKU_5_5 = "claude-haiku-5-5"
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = CLAUDE_SONNET_4,
-        max_tokens: int = 4096,
+        model: str = CLAUDE_OPUS_5_5,
+        max_tokens: int = 64000,
         **kwargs,
     ):
         """
@@ -44,9 +44,12 @@ class Anthropic(LLMProvider):
 
         Args:
             api_key: Anthropic API key. If None, reads from ANTHROPIC_API_KEY env var
-            model: Model to use. Use Anthropic.CLAUDE_SONNET_4, etc.
-            max_tokens: Maximum tokens to generate per request (default: 4096)
-            **kwargs: Additional parameters for the Anthropic API (e.g., temperature)
+            model: Model to use. Use Anthropic.CLAUDE_OPUS_5_5, etc.
+            max_tokens: Maximum tokens to generate per request (default: 64000).
+                This is a ceiling, not a target; it also covers the model's
+                thinking, so keep it generous.
+            **kwargs: Additional parameters for the Anthropic Messages API
+                (e.g., output_config={"effort": "low"})
         """
         api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
@@ -98,7 +101,8 @@ class Anthropic(LLMProvider):
         content.append({"type": "text", "text": prompt})
 
         try:
-            response = await self.aclient.messages.create(
+            # Streamed so that large outputs don't hit HTTP timeouts
+            async with self.aclient.messages.stream(
                 model=self.model,
                 max_tokens=self.max_tokens,
                 messages=[
@@ -108,22 +112,24 @@ class Anthropic(LLMProvider):
                     }
                 ],
                 **self.kwargs,
-            )
-
-            if response.content and len(response.content) > 0:
-                text_parts = [
-                    block.text
-                    for block in response.content
-                    if hasattr(block, "text") and block.text
-                ]
-                if text_parts:
-                    return "\n".join(text_parts)
-            logger.warning("Anthropic returned no content")
-            return ""
-
+            ) as stream:
+                response = await stream.get_final_message()
         except Exception as err:
             logger.error("Anthropic generation failed: %s", err)
             raise
+
+        if response.stop_reason == "max_tokens":
+            raise OCRResponseError(
+                f"Anthropic output was truncated at max_tokens={self.max_tokens}. "
+                "Increase max_tokens or lower llm_batch_size."
+            )
+        if response.stop_reason == "refusal":
+            raise OCRResponseError("Anthropic declined to process this content.")
+
+        text_parts = [block.text for block in response.content if block.type == "text"]
+        if not text_parts:
+            logger.warning("Anthropic returned no content")
+        return "\n".join(text_parts)
 
     async def aclose(self):
         """Close the Anthropic client."""

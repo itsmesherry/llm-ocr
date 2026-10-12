@@ -26,12 +26,10 @@ class OpenAI(LLMProvider):
     - gpt-4.1-mini
     - gpt-4.1-nano
     - o4-mini
-    - o3
-    - o3-mini
     - o1
+    - o3
     - gpt-4o
     - gpt-4o-mini
-    - chatgpt-4o-latest
     """
 
     # Available models with their identifiers
@@ -47,11 +45,9 @@ class OpenAI(LLMProvider):
     O4_MINI = "o4-mini"
     O1 = "o1"
     O3 = "o3"
-    O3_MINI = "o3-mini"
 
     GPT_4O = "gpt-4o"
     GPT_4O_MINI = "gpt-4o-mini"
-    CHATGPT_4O_LATEST = "chatgpt-4o-latest"
 
     def __init__(
         self,

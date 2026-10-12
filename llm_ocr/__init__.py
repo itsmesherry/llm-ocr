@@ -1,7 +1,7 @@
 """llm-ocr: Convert PDFs to markdown using LLMs."""
 
 from .config.settings import OCRConfig
-from .core.base import LLMProvider
+from .core.base import LLMProvider, OCRResponseError
 from .core.processor import LLMOCR
 
 # Import providers
@@ -14,6 +14,7 @@ __all__ = [
     "LLMOCR",
     "OCRConfig",
     "LLMProvider",
+    "OCRResponseError",
     "Anthropic",
     "Gemini",
     "OpenAI",

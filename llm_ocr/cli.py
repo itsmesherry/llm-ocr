@@ -62,7 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--api-key",
         default=None,
-        help="API key for the selected provider",
+        help="API key for the selected provider (prefer the provider's "
+        "environment variable: flags are visible in shell history)",
     )
     parser.add_argument(
         "--base-url",
@@ -119,7 +120,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _create_provider(args: argparse.Namespace) -> LLMProvider:
     """Instantiate the requested LLM provider from parsed CLI arguments."""
-    provider_name = args.provider or _detect_default_provider()
+    # --base-url implies an OpenAI-compatible server
+    provider_name = args.provider or (
+        "openai" if args.base_url else _detect_default_provider()
+    )
     kwargs = {}
     if args.api_key:
         kwargs["api_key"] = args.api_key
@@ -145,6 +149,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         format="[%(levelname)s] %(message)s",
         stream=sys.stderr,
     )
+
+    if args.base_url and args.provider not in (None, "openai"):
+        parser.error("--base-url is only supported with --provider openai")
 
     try:
         provider = _create_provider(args)

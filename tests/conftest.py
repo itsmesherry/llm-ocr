@@ -1,6 +1,7 @@
 """Shared pytest fixtures for llm-ocr tests."""
 
 import io
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -67,20 +68,34 @@ def mock_gemini_client():
     return client
 
 
-@pytest.fixture
-def mock_anthropic_client():
-    """Mock Anthropic async client."""
+def make_anthropic_client(blocks, stop_reason="end_turn", error=None):
+    """Build a mock Anthropic async client whose messages.stream() yields `blocks`."""
     client = MagicMock()
     client.close = AsyncMock()
 
-    mock_response = MagicMock()
-    mock_block = MagicMock()
-    mock_block.text = "# Test Markdown\nSample content"
-    mock_response.content = [mock_block]
-
-    client.messages.create = AsyncMock(return_value=mock_response)
+    stream = MagicMock()
+    stream.get_final_message = AsyncMock(
+        return_value=SimpleNamespace(content=blocks, stop_reason=stop_reason),
+        side_effect=error,
+    )
+    stream_cm = MagicMock()
+    stream_cm.__aenter__ = AsyncMock(return_value=stream)
+    stream_cm.__aexit__ = AsyncMock(return_value=False)
+    client.messages.stream = MagicMock(return_value=stream_cm)
 
     return client
+
+
+@pytest.fixture
+def mock_anthropic_client():
+    """Mock Anthropic async client."""
+    return make_anthropic_client(
+        [
+            # Thinking blocks must be ignored
+            SimpleNamespace(type="thinking", thinking=""),
+            SimpleNamespace(type="text", text="# Test Markdown\nSample content"),
+        ]
+    )
 
 
 @pytest.fixture

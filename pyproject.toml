@@ -22,7 +22,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Text Processing :: Markup :: Markdown",
     "Topic :: Multimedia :: Graphics :: Graphics Conversion",
@@ -32,26 +31,15 @@ dependencies = [
     "pdf2image>=1.16.0",
     "Pillow>=11.0.0",
     "google-genai>=1.0.0",
-    "openai>=1.50.0",
-    "anthropic>=0.40.0",
+    "openai>=2.0.0",
 ]
 
 [project.optional-dependencies]
-gemini = [
-    "google-genai>=1.0.0",
-]
-openai = [
-    "openai>=1.50.0",
-]
 anthropic = [
     "anthropic>=0.40.0",
 ]
-all = [
-    "google-genai>=1.0.0",
-    "openai>=1.50.0",
-    "anthropic>=0.40.0",
-]
 dev = [
+    "anthropic>=0.40.0",
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.0.0",
@@ -70,6 +58,7 @@ llm-ocr = "llm_ocr.cli:main"
 [project.urls]
 Homepage = "https://github.com/Shehryar718/llm-ocr"
 Repository = "https://github.com/Shehryar718/llm-ocr"
+Changelog = "https://github.com/Shehryar718/llm-ocr/blob/main/CHANGELOG.md"
 Issues = "https://github.com/Shehryar718/llm-ocr/issues"
 
 [tool.setuptools.packages.find]
@@ -86,7 +75,7 @@ asyncio_mode = "auto"
 
 [tool.black]
 line-length = 88
-target-version = ["py310", "py311", "py312", "py313"]
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 include = '\.pyi?$'
 
 [tool.isort]
@@ -101,7 +90,7 @@ disallow_untyped_defs = false
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]

@@ -1,11 +1,13 @@
 """Tests for llm_ocr.providers.anthropic module."""
 
 import base64
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
+from llm_ocr.core.base import OCRResponseError
 from llm_ocr.providers.anthropic import Anthropic
+from tests.conftest import make_anthropic_client
 
 
 class TestAnthropicProvider:
@@ -16,8 +18,8 @@ class TestAnthropicProvider:
         with patch("llm_ocr.providers.anthropic.AsyncAnthropic") as mock_client:
             provider = Anthropic(api_key=mock_api_key)
             assert provider.api_key == mock_api_key
-            assert provider.model == Anthropic.CLAUDE_SONNET_4
-            assert provider.max_tokens == 4096
+            assert provider.model == Anthropic.CLAUDE_OPUS_5_5
+            assert provider.max_tokens == 64000
             mock_client.assert_called_once_with(api_key=mock_api_key)
 
     def test_init_with_env_api_key(self, mock_api_key, set_anthropic_env_key):
@@ -37,13 +39,13 @@ class TestAnthropicProvider:
         with patch("llm_ocr.providers.anthropic.AsyncAnthropic"):
             provider = Anthropic(
                 api_key=mock_api_key,
-                model=Anthropic.CLAUDE_3_7_SONNET,
+                model=Anthropic.CLAUDE_HAIKU_5_5,
                 max_tokens=8192,
-                temperature=0.0,
+                output_config={"effort": "low"},
             )
-            assert provider.model == Anthropic.CLAUDE_3_7_SONNET
+            assert provider.model == Anthropic.CLAUDE_HAIKU_5_5
             assert provider.max_tokens == 8192
-            assert provider.kwargs == {"temperature": 0.0}
+            assert provider.kwargs == {"output_config": {"effort": "low"}}
 
     def test_name_property(self, mock_api_key):
         """Test name property returns 'anthropic'."""
@@ -53,11 +55,9 @@ class TestAnthropicProvider:
 
     def test_model_constants(self):
         """Test that model constants are defined correctly."""
-        assert Anthropic.CLAUDE_SONNET_4 == "claude-sonnet-4-20250514"
-        assert Anthropic.CLAUDE_OPUS_4 == "claude-opus-4-20250514"
-        assert Anthropic.CLAUDE_3_7_SONNET == "claude-3-7-sonnet-latest"
-        assert Anthropic.CLAUDE_3_5_SONNET == "claude-3-5-sonnet-latest"
-        assert Anthropic.CLAUDE_3_5_HAIKU == "claude-3-5-haiku-latest"
+        assert Anthropic.CLAUDE_OPUS_5_5 == "claude-opus-5-5"
+        assert Anthropic.CLAUDE_SONNET_5_5 == "claude-sonnet-5-5"
+        assert Anthropic.CLAUDE_HAIKU_5_5 == "claude-haiku-5-5"
 
     @pytest.mark.asyncio
     async def test_generate_content_single_image(
@@ -74,11 +74,11 @@ class TestAnthropicProvider:
             )
 
             assert result == "# Test Markdown\nSample content"
-            mock_anthropic_client.messages.create.assert_called_once()
+            mock_anthropic_client.messages.stream.assert_called_once()
 
-            call_args = mock_anthropic_client.messages.create.call_args
-            assert call_args.kwargs["model"] == Anthropic.CLAUDE_SONNET_4
-            assert call_args.kwargs["max_tokens"] == 4096
+            call_args = mock_anthropic_client.messages.stream.call_args
+            assert call_args.kwargs["model"] == Anthropic.CLAUDE_OPUS_5_5
+            assert call_args.kwargs["max_tokens"] == 64000
 
             messages = call_args.kwargs["messages"]
             assert len(messages) == 1
@@ -108,7 +108,7 @@ class TestAnthropicProvider:
             )
             assert result == "# Test Markdown\nSample content"
 
-            call_args = mock_anthropic_client.messages.create.call_args
+            call_args = mock_anthropic_client.messages.stream.call_args
             content = call_args.kwargs["messages"][0]["content"]
             assert len(content) == 3  # 2 images + 1 text
 
@@ -117,10 +117,7 @@ class TestAnthropicProvider:
         self, mock_api_key, sample_image_bytes
     ):
         """Test generate_content with empty response."""
-        mock_client = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = []
-        mock_client.messages.create = AsyncMock(return_value=mock_response)
+        mock_client = make_anthropic_client([])
 
         with patch(
             "llm_ocr.providers.anthropic.AsyncAnthropic", return_value=mock_client
@@ -134,14 +131,30 @@ class TestAnthropicProvider:
     @pytest.mark.asyncio
     async def test_generate_content_api_error(self, mock_api_key, sample_image_bytes):
         """Test generate_content handles API errors."""
-        mock_client = MagicMock()
-        mock_client.messages.create = AsyncMock(side_effect=Exception("API Error"))
+        mock_client = make_anthropic_client([], error=Exception("API Error"))
 
         with patch(
             "llm_ocr.providers.anthropic.AsyncAnthropic", return_value=mock_client
         ):
             provider = Anthropic(api_key=mock_api_key)
             with pytest.raises(Exception, match="API Error"):
+                await provider.generate_content("Test prompt", [sample_image_bytes])
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "stop_reason, match", [("max_tokens", "truncated"), ("refusal", "declined")]
+    )
+    async def test_generate_content_unusable_response_raises(
+        self, mock_api_key, sample_image_bytes, stop_reason, match
+    ):
+        """Truncated or refused output must raise instead of returning partial text."""
+        mock_client = make_anthropic_client([], stop_reason=stop_reason)
+
+        with patch(
+            "llm_ocr.providers.anthropic.AsyncAnthropic", return_value=mock_client
+        ):
+            provider = Anthropic(api_key=mock_api_key)
+            with pytest.raises(OCRResponseError, match=match):
                 await provider.generate_content("Test prompt", [sample_image_bytes])
 
     @pytest.mark.asyncio

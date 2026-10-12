@@ -1,7 +1,7 @@
 # LLM OCR
 
 [![PyPI](https://img.shields.io/pypi/v/ocr-llm)](https://pypi.org/project/ocr-llm/)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/ocr-llm/)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/ocr-llm/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Shehryar718/llm-ocr/blob/main/LICENSE)
 
 Convert PDFs and images to clean Markdown using Large Language Models (LLMs) with vision capabilities.
@@ -10,7 +10,7 @@ Convert PDFs and images to clean Markdown using Large Language Models (LLMs) wit
 
 - 🔍 **High-quality OCR** using vision-capable LLMs
 - 🔌 **Multiple Providers**: Google Gemini, OpenAI, Anthropic Claude, and OpenAI-compatible local/cloud endpoints (Ollama, vLLM, OpenRouter, Groq)
-- ⚡ **Concurrent Processing**: Parallel LLM batch execution (`max_concurrency`) for 3x–8x faster multi-page PDF conversion
+- ⚡ **Concurrent Processing**: Parallel LLM batch execution (`max_concurrency`) for faster multi-page PDF conversion
 - 🖼️ **Flexible Inputs**: Convert PDFs, standalone images (`.png`, `.jpg`, `.webp`, `.tiff`), PIL Images, or in-memory `bytes`
 - 💻 **CLI Included**: Convert documents directly from the terminal with `ocr-llm` / `llm-ocr`
 - 🎯 **Custom Prompts**: Override the system prompt or append custom instructions (e.g., tables only, LaTeX math, translation)
@@ -22,16 +22,11 @@ Convert PDFs and images to clean Markdown using Large Language Models (LLMs) wit
 pip install ocr-llm
 ```
 
-You can also install provider-specific extras:
+Gemini and OpenAI support is included. Anthropic Claude is an optional extra:
 
 ```bash
-pip install "ocr-llm[gemini]"
-pip install "ocr-llm[openai]"
 pip install "ocr-llm[anthropic]"
-pip install "ocr-llm[all]"
 ```
-
-### System Dependencies
 
 Install `poppler` (required for PDF-to-image conversion):
 
@@ -84,6 +79,7 @@ print(markdown)
 import asyncio
 from llm_ocr import LLMOCR, OpenAI
 
+
 async def main():
     provider = OpenAI(
         api_key="your-api-key",  # Or set OPENAI_API_KEY env var
@@ -94,6 +90,7 @@ async def main():
         markdown = await ocr.convert("document.pdf", output_path="output.md")
         print(markdown)
 
+
 asyncio.run(main())
 ```
 
@@ -103,15 +100,17 @@ asyncio.run(main())
 import asyncio
 from llm_ocr import LLMOCR, Anthropic
 
+
 async def main():
     provider = Anthropic(
         api_key="your-api-key",  # Or set ANTHROPIC_API_KEY env var
-        model=Anthropic.CLAUDE_SONNET_4,
+        model=Anthropic.CLAUDE_OPUS_5_5,
     )
 
     async with LLMOCR(provider) as ocr:
         markdown = await ocr.convert("document.pdf", output_path="output.md")
         print(markdown)
+
 
 asyncio.run(main())
 ```
@@ -136,6 +135,7 @@ markdown = ocr.convert_sync("document.pdf")
 import asyncio
 from llm_ocr import LLMOCR, Gemini
 
+
 async def main():
     async with LLMOCR(Gemini()) as ocr:
         # 1. Direct image file (.png, .jpg, .webp, .tiff, etc.)
@@ -144,7 +144,8 @@ async def main():
         # 2. In-memory PDF or image bytes (e.g. FastAPI UploadFile or S3 download)
         with open("document.pdf", "rb") as f:
             pdf_bytes = f.read()
-        md_from_bytes = await ocr.convert_bytes(pdf_bytes, file_type="pdf")
+        md_from_bytes = await ocr.convert_bytes(pdf_bytes)
+
 
 asyncio.run(main())
 ```
@@ -157,24 +158,21 @@ asyncio.run(main())
 - `Gemini.FLASH_LITE_2_5` (`gemini-2.5-flash-lite`)
 - `Gemini.PRO_2_0` (`gemini-2.0-pro`)
 - `Gemini.FLASH_2_0` (`gemini-2.0-flash`)
-- `Gemini.FLASH_LITE_2_0` (`gemini-2.0-flash-lite`)
-- `Gemini.PRO_1_5` (`gemini-1.5-pro`)
-- `Gemini.FLASH_1_5` (`gemini-1.5-flash`)
 
 ### OpenAI
 - `OpenAI.GPT_4O` (`gpt-4o`)
 - `OpenAI.GPT_4O_MINI` (`gpt-4o-mini` - default)
-- `OpenAI.CHATGPT_4O_LATEST` (`chatgpt-4o-latest`)
 - `OpenAI.GPT_5`, `OpenAI.GPT_5_MINI`, `OpenAI.GPT_5_NANO`
 - `OpenAI.GPT_4_1`, `OpenAI.GPT_4_1_MINI`, `OpenAI.GPT_4_1_NANO`
-- `OpenAI.O1`, `OpenAI.O3`, `OpenAI.O3_MINI`, `OpenAI.O4_MINI`
+- `OpenAI.O1`, `OpenAI.O3`, `OpenAI.O4_MINI`
 
 ### Anthropic
-- `Anthropic.CLAUDE_SONNET_4` (`claude-sonnet-4-20250514` - default)
-- `Anthropic.CLAUDE_OPUS_4` (`claude-opus-4-20250514`)
-- `Anthropic.CLAUDE_3_7_SONNET` (`claude-3-7-sonnet-latest`)
-- `Anthropic.CLAUDE_3_5_SONNET` (`claude-3-5-sonnet-latest`)
-- `Anthropic.CLAUDE_3_5_HAIKU` (`claude-3-5-haiku-latest`)
+- `Anthropic.CLAUDE_OPUS_5_5` (`claude-opus-5-5` - default)
+- `Anthropic.CLAUDE_SONNET_5_5` (`claude-sonnet-5-5`)
+- `Anthropic.CLAUDE_HAIKU_5_5` (`claude-haiku-5-5`)
+
+Providers retire models over time. Any model identifier can be passed as a plain
+string (`model="..."`), so you are never limited to the constants above.
 
 ## Configuration
 
@@ -184,13 +182,13 @@ Customize the OCR processing with `OCRConfig`:
 from llm_ocr import LLMOCR, OpenAI, OCRConfig
 
 config = OCRConfig(
-    dpi=300,                    # Higher DPI for better quality
-    max_pages=10,               # Limit number of pages to process
-    llm_batch_size=2,           # Send 2 pages to LLM at once
-    max_concurrency=4,          # Process up to 4 batches concurrently
+    dpi=300,  # Higher DPI for better quality
+    max_pages=10,  # Limit number of pages to process
+    llm_batch_size=2,  # Send 2 pages to LLM at once
+    max_concurrency=4,  # Process up to 4 batches concurrently
     convert_to_grayscale=True,  # Convert images to grayscale
-    max_retries=3,              # Retry failed requests
-    retry_delay=1.0,            # Wait 1 second between retries
+    max_retries=3,  # Retry failed requests
+    retry_delay=1.0,  # Wait 1 second between retries
     include_page_markers=True,  # Add <!-- Page N --> markers in output
     additional_instructions="Preserve all mathematical formulas in LaTeX.",
 )
@@ -218,6 +216,17 @@ ocr = LLMOCR(provider, config=config)
 | `custom_prompt`           | None    | Override the default system prompt                        |
 | `additional_instructions` | None    | Extra instructions appended to the prompt                 |
 
+## Progress Output
+
+Since 1.1.0 progress is reported through the standard `logging` module instead of
+`print()`. To see it:
+
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+```
+
 ## Environment Variables
 
 Set API keys via environment variables:
@@ -227,6 +236,10 @@ export OPENAI_API_KEY="your-openai-api-key"
 export GEMINI_API_KEY="your-gemini-api-key"
 export ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

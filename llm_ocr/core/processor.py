@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 import tempfile
+import threading
 from pathlib import Path
 from typing import AsyncIterable, List, Optional, Tuple, Union
 
@@ -9,7 +10,7 @@ from pdf2image import convert_from_path, pdfinfo_from_path
 from PIL import Image
 
 from ..config.settings import OCRConfig
-from ..core.base import LLMProvider
+from ..core.base import LLMProvider, OCRResponseError
 from ..prompts.markdown import MARKDOWN_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -45,11 +46,20 @@ class LLMOCR:
         self.provider = provider
         self.config = config or OCRConfig()
         self.config.validate()
+        self._sync_loop: Optional[asyncio.AbstractEventLoop] = None
 
     def _pil_image_to_png_bytes(self, im: Image.Image) -> bytes:
         """Convert a PIL Image object to PNG bytes."""
+        if getattr(im, "n_frames", 1) > 1:
+            logger.warning(
+                "Image has %d frames/pages; only the first one is converted",
+                im.n_frames,  # type: ignore[attr-defined]
+            )
         if self.config.convert_to_grayscale:
             im = im.convert("L")
+        elif im.mode not in ("1", "L", "LA", "P", "RGB", "RGBA"):
+            # PNG cannot store CMYK, YCbCr, etc.
+            im = im.convert("RGB")
         buff = io.BytesIO()
         im.save(buff, format="PNG", optimize=self.config.optimize_png)
         return buff.getvalue()
@@ -97,9 +107,11 @@ class LLMOCR:
     def _build_prompt(self, page_range: str, total_pages: int) -> str:
         """Build the prompt for a given page range."""
         if self.config.custom_prompt:
-            prompt = self.config.custom_prompt
-            if "{page_range}" in prompt or "{total_pages}" in prompt:
-                prompt = prompt.format(page_range=page_range, total_pages=total_pages)
+            # str.replace, not str.format: custom prompts may contain literal
+            # braces (e.g. JSON examples).
+            prompt = self.config.custom_prompt.replace(
+                "{page_range}", page_range
+            ).replace("{total_pages}", str(total_pages))
         else:
             prompt = MARKDOWN_SYSTEM_PROMPT.format(
                 page_range=page_range, total_pages=total_pages
@@ -134,50 +146,59 @@ class LLMOCR:
 
     async def _process_batch_with_retries(
         self,
-        semaphore: asyncio.Semaphore,
         png_bytes_list: List[bytes],
         page_nums: List[int],
         total_pages: int,
     ) -> str:
-        """Process a batch of pages with concurrency control and retries."""
+        """Process a batch of pages, retrying transient failures."""
         page_range = (
             f"{page_nums[0]}-{page_nums[-1]}"
             if len(page_nums) > 1
             else str(page_nums[0])
         )
-        async with semaphore:
-            markdown_content = ""
-            for attempt in range(self.config.max_retries):
-                try:
-                    markdown_content = await self._process_batch_with_llm(
-                        png_bytes_list, page_nums, total_pages
-                    )
-                    break
-                except Exception as e:
-                    if attempt == self.config.max_retries - 1:
-                        logger.error(
-                            "Pages %s: Failed after %d attempts: %s",
-                            page_range,
-                            self.config.max_retries,
-                            e,
-                        )
-                        raise  # Fail-fast: stop processing on failure
-                    await asyncio.sleep(self.config.retry_delay * (attempt + 1))
-
-            if markdown_content.strip():
-                logger.info(
-                    "Pages %s/%d processed (%d chars)",
-                    page_range,
-                    total_pages,
-                    len(markdown_content),
+        markdown_content = ""
+        for attempt in range(self.config.max_retries):
+            try:
+                markdown_content = await self._process_batch_with_llm(
+                    png_bytes_list, page_nums, total_pages
                 )
-            else:
-                logger.info("Pages %s/%d - No content", page_range, total_pages)
+                break
+            except OCRResponseError:
+                raise  # Deterministic (truncated/refused output): retrying won't help
+            except Exception as e:
+                if attempt == self.config.max_retries - 1:
+                    logger.error(
+                        "Pages %s: Failed after %d attempts: %s",
+                        page_range,
+                        self.config.max_retries,
+                        e,
+                    )
+                    raise  # Fail-fast: stop processing on failure
+                await asyncio.sleep(self.config.retry_delay * (attempt + 1))
 
-            return markdown_content
+        if markdown_content.strip():
+            logger.info(
+                "Pages %s/%d processed (%d chars)",
+                page_range,
+                total_pages,
+                len(markdown_content),
+            )
+        else:
+            logger.info("Pages %s/%d - No content", page_range, total_pages)
 
-    def _combine_markdown_chunks(self, chunks: List[str]) -> str:
-        """Combine markdown chunks from multiple pages."""
+        return markdown_content
+
+    def _combine_markdown_chunks(
+        self, chunks: List[str], page_nums: Optional[List[int]] = None
+    ) -> str:
+        """
+        Combine markdown chunks from multiple pages.
+
+        Args:
+            chunks: Markdown for each batch, in document order
+            page_nums: First page number of each chunk, used for page markers.
+                Defaults to the chunk's position (1-based).
+        """
         combined = []
 
         for i, chunk in enumerate(chunks):
@@ -186,7 +207,8 @@ class LLMOCR:
 
             # Add page separator comment for debugging (optional)
             if i > 0 and self.config.include_page_markers:
-                combined.append(f"\n<!-- Page {i + 1} -->\n")
+                page = page_nums[i] if page_nums else i + 1
+                combined.append(f"\n<!-- Page {page} -->\n")
 
             combined.append(chunk)
 
@@ -250,10 +272,7 @@ class LLMOCR:
                 "image_input must be a file path, bytes, or PIL.Image.Image"
             )
 
-        semaphore = asyncio.Semaphore(self.config.max_concurrency)
-        markdown_content = await self._process_batch_with_retries(
-            semaphore, [png_bytes], [1], 1
-        )
+        markdown_content = await self._process_batch_with_retries([png_bytes], [1], 1)
         final_markdown = self._combine_markdown_chunks([markdown_content])
         self._save_output(final_markdown, output_path)
         return final_markdown
@@ -261,7 +280,7 @@ class LLMOCR:
     async def convert_bytes(
         self,
         data: bytes,
-        file_type: str = "pdf",
+        file_type: Optional[str] = None,
         output_path: Optional[Union[str, Path]] = None,
     ) -> str:
         """
@@ -269,7 +288,9 @@ class LLMOCR:
 
         Args:
             data: Raw bytes of a PDF or image
-            file_type: Either 'pdf' or an image format ('png', 'jpg', etc.)
+            file_type: Optional hint: 'pdf' or an image format ('png', 'jpg', ...).
+                If omitted, PDFs are detected from their header and anything
+                else is treated as an image.
             output_path: Optional path to save the markdown file
 
         Returns:
@@ -278,8 +299,8 @@ class LLMOCR:
         if not isinstance(data, (bytes, bytearray)):
             raise TypeError("data must be bytes")
 
-        normalized_type = file_type.lower().lstrip(".")
-        if normalized_type == "pdf" or bytes(data).startswith(b"%PDF"):
+        normalized_type = (file_type or "").lower().lstrip(".")
+        if normalized_type == "pdf" or b"%PDF" in bytes(data[:1024]):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmp_pdf = Path(tmpdir) / "document.pdf"
                 tmp_pdf.write_bytes(data)
@@ -322,34 +343,57 @@ class LLMOCR:
             self.config.max_concurrency,
         )
 
-        # Collect pages into batches according to llm_batch_size
-        batches: List[Tuple[List[bytes], List[int]]] = []
+        # Pages are rendered and sent as we go: at most `max_concurrency` batches
+        # are in flight (and held in memory) at any time.
+        semaphore = asyncio.Semaphore(self.config.max_concurrency)
+        tasks: List["asyncio.Task[str]"] = []
+        first_pages: List[int] = []
+
+        async def run_batch(pages: List[bytes], nums: List[int]) -> str:
+            try:
+                return await self._process_batch_with_retries(pages, nums, total_pages)
+            finally:
+                semaphore.release()
+
+        async def submit(pages: List[bytes], nums: List[int]) -> None:
+            await semaphore.acquire()
+            # Fail-fast: don't start new batches once one has failed
+            for task in tasks:
+                if task.done() and not task.cancelled() and task.exception():
+                    raise task.exception()  # type: ignore[misc]
+            tasks.append(asyncio.create_task(run_batch(pages, nums)))
+            first_pages.append(nums[0])
+
         page_batch: List[bytes] = []
         page_num_batch: List[int] = []
 
-        async for page_num, png_bytes in self._iter_pdf_pages_as_png_bytes(pdf_path):
-            page_batch.append(png_bytes)
-            page_num_batch.append(page_num)
+        try:
+            async for page_num, png_bytes in self._iter_pdf_pages_as_png_bytes(
+                pdf_path
+            ):
+                page_batch.append(png_bytes)
+                page_num_batch.append(page_num)
 
-            if len(page_batch) >= self.config.llm_batch_size or page_num == total_pages:
-                batches.append((page_batch, page_num_batch))
-                page_batch = []
-                page_num_batch = []
+                if len(page_batch) >= self.config.llm_batch_size:
+                    await submit(page_batch, page_num_batch)
+                    page_batch = []
+                    page_num_batch = []
 
-        if page_batch:
-            batches.append((page_batch, page_num_batch))
+            if page_batch:
+                await submit(page_batch, page_num_batch)
 
-        semaphore = asyncio.Semaphore(self.config.max_concurrency)
-        tasks = [
-            self._process_batch_with_retries(semaphore, b_pages, b_nums, total_pages)
-            for b_pages, b_nums in batches
-        ]
-        results = await asyncio.gather(*tasks)
-
-        markdown_chunks = [res for res in results if res.strip()]
+            markdown_chunks = await asyncio.gather(*tasks)
+        except BaseException:
+            # Fail-fast: cancel in-flight batches so they stop costing money
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
 
         # Combine all chunks
-        final_markdown = self._combine_markdown_chunks(markdown_chunks)
+        final_markdown = self._combine_markdown_chunks(
+            list(markdown_chunks), first_pages
+        )
 
         # Save to file if output path provided
         self._save_output(final_markdown, output_path)
@@ -365,6 +409,10 @@ class LLMOCR:
         """
         Synchronous convenience wrapper for `convert()`.
 
+        Safe to call repeatedly and from environments that already run an
+        event loop (e.g. Jupyter notebooks): the work runs on a dedicated
+        background event loop owned by this instance.
+
         Args:
             input_path: Path to the PDF or image file
             output_path: Optional path to save the markdown file
@@ -372,9 +420,15 @@ class LLMOCR:
         Returns:
             Markdown content as string
         """
+        if self._sync_loop is None:
+            self._sync_loop = asyncio.new_event_loop()
+            threading.Thread(target=self._sync_loop.run_forever, daemon=True).start()
 
-        async def _run() -> str:
-            async with self:
-                return await self.convert(input_path, output_path=output_path)
-
-        return asyncio.run(_run())
+        future = asyncio.run_coroutine_threadsafe(
+            self.convert(input_path, output_path=output_path), self._sync_loop
+        )
+        try:
+            return future.result()
+        except BaseException:
+            future.cancel()  # e.g. KeyboardInterrupt: stop in-flight requests
+            raise

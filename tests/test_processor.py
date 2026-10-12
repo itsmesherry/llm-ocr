@@ -529,13 +529,129 @@ class TestLLMOCRConvert:
                 assert res_pdf == "# Bytes Content"
 
     def test_convert_sync(self, tmp_path):
-        """Test synchronous convert_sync wrapper."""
+        """convert_sync is reusable and does not close the provider."""
         provider = MockProvider(responses=["# Sync Markdown"])
         ocr = LLMOCR(provider)
 
         img_path = tmp_path / "doc.png"
         Image.new("RGB", (40, 40), color="white").save(img_path)
 
-        result = ocr.convert_sync(img_path)
-        assert result == "# Sync Markdown"
-        assert provider.closed is True
+        assert ocr.convert_sync(img_path) == "# Sync Markdown"
+        assert ocr.convert_sync(img_path) == "# Sync Markdown"
+        assert provider.closed is False
+
+    @pytest.mark.asyncio
+    async def test_convert_sync_inside_running_loop(self, tmp_path):
+        """convert_sync works where a loop is already running (e.g. notebooks)."""
+        ocr = LLMOCR(MockProvider(responses=["# Sync Markdown"]))
+        img_path = tmp_path / "doc.png"
+        Image.new("RGB", (40, 40), color="white").save(img_path)
+
+        assert ocr.convert_sync(img_path) == "# Sync Markdown"
+
+    @pytest.mark.asyncio
+    async def test_convert_fails_fast_and_bounds_concurrency(self, tmp_path):
+        """A failed page stops further requests; in-flight ones never exceed the cap."""
+        import asyncio
+
+        class FailingProvider(MockProvider):
+            in_flight = 0
+            max_in_flight = 0
+
+            async def generate_content(
+                self, prompt: str, image_bytes_list: List[bytes]
+            ) -> str:
+                self.call_count += 1
+                self.in_flight += 1
+                self.max_in_flight = max(self.max_in_flight, self.in_flight)
+                try:
+                    if "PAGES: 1 of" in prompt:
+                        raise RuntimeError("boom")
+                    await asyncio.sleep(0.05)
+                    return "ok"
+                finally:
+                    self.in_flight -= 1
+
+        provider = FailingProvider()
+        ocr = LLMOCR(provider, OCRConfig(max_concurrency=2, max_retries=1))
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.write_text("dummy")
+
+        async def mock_iter(pdf_path):
+            for page in range(1, 21):
+                yield page, b"png"
+
+        with patch(
+            "llm_ocr.core.processor.pdfinfo_from_path", return_value={"Pages": 20}
+        ):
+            with patch.object(ocr, "_iter_pdf_pages_as_png_bytes", mock_iter):
+                with pytest.raises(RuntimeError, match="boom"):
+                    await ocr.convert(pdf_path)
+
+        calls_at_failure = provider.call_count
+        await asyncio.sleep(0.2)
+        assert provider.call_count == calls_at_failure < 20
+        assert provider.max_in_flight <= 2
+
+    @pytest.mark.asyncio
+    async def test_page_markers_use_real_page_numbers(self, tmp_path):
+        """An empty page must not shift the numbering of later page markers."""
+
+        class SkipPage2(MockProvider):
+            async def generate_content(
+                self, prompt: str, image_bytes_list: List[bytes]
+            ) -> str:
+                return "" if "PAGES: 2 of" in prompt else "text"
+
+        ocr = LLMOCR(SkipPage2(), OCRConfig(include_page_markers=True))
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.write_text("dummy")
+
+        async def mock_iter(pdf_path):
+            for page in range(1, 4):
+                yield page, b"png"
+
+        with patch(
+            "llm_ocr.core.processor.pdfinfo_from_path", return_value={"Pages": 3}
+        ):
+            with patch.object(ocr, "_iter_pdf_pages_as_png_bytes", mock_iter):
+                result = await ocr.convert(pdf_path)
+
+        assert "<!-- Page 3 -->" in result
+        assert "<!-- Page 2 -->" not in result
+
+    def test_custom_prompt_with_literal_braces(self):
+        """Custom prompts may contain braces (e.g. JSON) next to placeholders."""
+        config = OCRConfig(custom_prompt='Return {"page": "{page_range}"} as JSON')
+        prompt = LLMOCR(MockProvider(), config)._build_prompt("2", 5)
+        assert prompt == 'Return {"page": "2"} as JSON'
+
+    @pytest.mark.asyncio
+    async def test_convert_bytes_detects_image_without_hint(self, sample_image_bytes):
+        """Image bytes are not mistaken for a PDF when file_type is omitted."""
+        ocr = LLMOCR(MockProvider(responses=["# Bytes Content"]))
+        assert await ocr.convert_bytes(sample_image_bytes) == "# Bytes Content"
+
+    @pytest.mark.asyncio
+    async def test_convert_image_cmyk(self):
+        """CMYK images (common for JPEG scans) are converted before PNG encoding."""
+        ocr = LLMOCR(MockProvider(responses=["# CMYK"]))
+        assert await ocr.convert_image(Image.new("CMYK", (20, 20))) == "# CMYK"
+
+    @pytest.mark.asyncio
+    async def test_unusable_response_is_not_retried(self):
+        """OCRResponseError (truncated/refused output) skips the retry loop."""
+        from llm_ocr.core.base import OCRResponseError
+
+        class TruncatingProvider(MockProvider):
+            async def generate_content(
+                self, prompt: str, image_bytes_list: List[bytes]
+            ) -> str:
+                self.call_count += 1
+                raise OCRResponseError("truncated")
+
+        provider = TruncatingProvider()
+        ocr = LLMOCR(provider, OCRConfig(max_retries=3, retry_delay=0.01))
+        with pytest.raises(OCRResponseError):
+            await ocr._process_batch_with_retries([b"png"], [1], 1)
+        assert provider.call_count == 1
