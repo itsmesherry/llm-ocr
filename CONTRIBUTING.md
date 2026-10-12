@@ -51,7 +51,16 @@ Raise `OCRResponseError` when the model returns truncated or refused output.
 
 ## Releasing (maintainers)
 
-1. Move the `Unreleased` entries in `CHANGELOG.md` under a new version heading.
-2. Bump the version in `pyproject.toml` and `llm_ocr/__init__.py`.
-3. `make publish-test`, install from TestPyPI and try it.
-4. `make publish`, then tag the commit (`git tag v1.2.0 && git push --tags`).
+1. Open a release pull request that bumps the version in `pyproject.toml` and
+   `llm_ocr/__init__.py`, and renames `Unreleased` in `CHANGELOG.md` to the new
+   version and date (leave a fresh, empty `Unreleased` above it).
+2. Merge it once CI is green.
+3. Create a GitHub Release on that commit with the tag `v<version>`, for example
+   `v1.2.0`, and paste the changelog section as the notes.
+
+Publishing the release runs `.github/workflows/publish.yml`, which builds the
+package from the tag and uploads it to PyPI through Trusted Publishing. No API
+token is involved, and the workflow refuses to publish if the tag does not match
+the version in `pyproject.toml`.
+
+To rehearse an upload, `make publish-test` sends a local build to TestPyPI.

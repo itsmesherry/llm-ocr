@@ -5,8 +5,8 @@ want to pick one up.
 
 ## Release process
 
-- [ ] Publish from GitHub Actions with PyPI Trusted Publishing instead of a
-      local token
+- [ ] After the first release through the publish workflow, delete the old
+      PyPI API token
 - [ ] Publish to TestPyPI before each release (skipped for 1.1.0)
 - [ ] Keep the version in one place (it is duplicated in `pyproject.toml` and
       `llm_ocr/__init__.py`)
