@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-25
+
 ### Changed
 
 - HTTP 4xx errors that fail the same way on every attempt (bad request, invalid
@@ -70,7 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release.
 
-[Unreleased]: https://github.com/itsmesherry/llm-ocr/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/itsmesherry/llm-ocr/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/itsmesherry/llm-ocr/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/itsmesherry/llm-ocr/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/itsmesherry/llm-ocr/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/itsmesherry/llm-ocr/releases/tag/v1.0.0

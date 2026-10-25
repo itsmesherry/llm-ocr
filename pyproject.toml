@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ocr-llm"
-version = "1.2.0"
+version = "1.2.1"
 description = "Convert PDFs and images to markdown using Large Language Models (LLMs) with vision capabilities"
 readme = "README.md"
 requires-python = ">=3.9"
