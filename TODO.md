@@ -11,7 +11,6 @@ want to pick one up.
       Gemini (`SAFETY`, `RECITATION`); those pages currently come back empty
 - [ ] Refresh the OpenAI and Gemini model constants and deprecate the ones for
       retired models
-- [ ] Do not retry errors that cannot succeed (invalid API key, 400/401/403);
-      back off for longer on rate-limit (429) errors
+- [ ] Back off for longer on rate-limit (429) errors
 - [ ] Ship a `py.typed` marker so users' type checkers see the type hints
 - [ ] Optional automatic fallback model when Anthropic declines a request
