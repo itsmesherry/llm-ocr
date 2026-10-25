@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- HTTP 4xx errors that fail the same way on every attempt (bad request, invalid
+  API key, unknown model, request too large) are raised at once instead of being
+  retried `max_retries` times. 408, 409 and 429 are still retried, as are 5xx
+  and errors without a status code.
+- A page the model returns no text for is logged as a warning (it was logged at
+  INFO level), so pages missing from the output no longer go unnoticed.
+- `OpenAI` with a `base_url` on this machine (`localhost`, `*.localhost`, `127.0.0.1`, `::1`, `0.0.0.0`)
+  uses a 30-minute request timeout instead of the SDK's 10 minutes. Local
+  servers such as Ollama queue requests beyond `OLLAMA_NUM_PARALLEL`, and the
+  shorter timeout cancelled and silently resent queued pages. A `timeout=`
+  passed to `OpenAI` still takes precedence.
+
+### Documentation
+
+- README section on running local models with Ollama: `OLLAMA_CONTEXT_LENGTH`
+  and matching `max_concurrency` to `OLLAMA_NUM_PARALLEL`.
+
 ## [1.2.0] - 2026-10-12
 
 ### Changed

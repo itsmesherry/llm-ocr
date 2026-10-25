@@ -26,6 +26,22 @@ IMAGE_EXTENSIONS = {
     ".gif",
 }
 
+# 4xx codes that can succeed on a later attempt (timeout, conflict, rate limit)
+_RETRYABLE_CLIENT_ERRORS = {408, 409, 429}
+
+
+def _is_permanent_client_error(err: Exception) -> bool:
+    """True for an HTTP 4xx error that fails the same way on every attempt."""
+    # OpenAI and Anthropic errors carry `status_code`, Gemini errors carry `code`
+    status = getattr(err, "status_code", None)
+    if not isinstance(status, int):
+        status = getattr(err, "code", None)
+    return (
+        isinstance(status, int)
+        and 400 <= status < 500
+        and status not in _RETRYABLE_CLIENT_ERRORS
+    )
+
 
 class LLMOCR:
     """Main processor for converting PDFs and images to markdown using LLMs."""
@@ -166,6 +182,8 @@ class LLMOCR:
             except OCRResponseError:
                 raise  # Deterministic (truncated/refused output): retrying won't help
             except Exception as e:
+                if _is_permanent_client_error(e):
+                    raise  # e.g. invalid API key, unknown model, request too large
                 if attempt == self.config.max_retries - 1:
                     logger.error(
                         "Pages %s: Failed after %d attempts: %s",
@@ -184,7 +202,14 @@ class LLMOCR:
                 len(markdown_content),
             )
         else:
-            logger.info("Pages %s/%d - No content", page_range, total_pages)
+            # Blank pages are expected, but so is a model that silently returns
+            # nothing for a page with text on it: make it visible either way.
+            logger.warning(
+                "Pages %s/%d: the model returned no content; "
+                "they are left out of the output",
+                page_range,
+                total_pages,
+            )
 
         return markdown_content
 
