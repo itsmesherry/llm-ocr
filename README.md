@@ -161,7 +161,7 @@ ocr = LLMOCR(OpenAI(), config=config)
 | `max_pages`               | None    | Stop after this many pages                          |
 | `llm_batch_size`          | 1       | Pages sent to the model per request                 |
 | `max_concurrency`         | 4       | Concurrent requests; use 1 on low rate limits       |
-| `max_retries`             | 3       | Attempts per request                                |
+| `max_retries`             | 3       | Attempts per request (not for permanent 4xx errors) |
 | `retry_delay`             | 1.0     | Seconds between attempts, multiplied by the attempt |
 | `include_page_markers`    | False   | Insert `<!-- Page N -->` between pages              |
 | `custom_prompt`           | None    | Replace the built-in prompt                         |
