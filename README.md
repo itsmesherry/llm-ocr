@@ -72,6 +72,29 @@ Anthropic(model="claude-haiku-5-5")
 OpenAI(base_url="http://localhost:11434/v1", model="llava")
 ```
 
+### Local models with Ollama
+
+Two Ollama server settings matter:
+
+- **Context length.** At the default 200 DPI a page takes about 4,300 tokens
+  with `qwen2.5vl`, more than the 4,096-token context Ollama picks on machines
+  with little memory, so every page fails. Start the server with
+  `OLLAMA_CONTEXT_LENGTH=8192`, or lower `dpi`.
+- **Parallel requests.** Ollama works on `OLLAMA_NUM_PARALLEL` requests at a
+  time (often 1) and queues the rest, so a `max_concurrency` above that does
+  not make it faster. Set them to the same value. Servers built for batching,
+  such as vLLM, do benefit from higher concurrency.
+
+```bash
+OLLAMA_CONTEXT_LENGTH=8192 ollama serve
+ollama pull qwen2.5vl:3b
+ocr-llm document.pdf --base-url http://localhost:11434/v1 --model qwen2.5vl:3b --concurrency 1
+```
+
+For a server on this machine (`localhost`), requests time out after 30 minutes
+instead of the OpenAI SDK's 10, so pages waiting in the queue are not cancelled
+and sent again. Pass `timeout=` (in seconds) to `OpenAI(...)` to change it.
+
 ## Usage
 
 `convert_sync` is the simplest entry point and also works in notebooks:
@@ -138,7 +161,7 @@ ocr = LLMOCR(OpenAI(), config=config)
 | `max_pages`               | None    | Stop after this many pages                          |
 | `llm_batch_size`          | 1       | Pages sent to the model per request                 |
 | `max_concurrency`         | 4       | Concurrent requests; use 1 on low rate limits       |
-| `max_retries`             | 3       | Attempts per request                                |
+| `max_retries`             | 3       | Attempts per request (not for permanent 4xx errors) |
 | `retry_delay`             | 1.0     | Seconds between attempts, multiplied by the attempt |
 | `include_page_markers`    | False   | Insert `<!-- Page N -->` between pages              |
 | `custom_prompt`           | None    | Replace the built-in prompt                         |
@@ -159,6 +182,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 ```
+
+Warnings, such as a page the model returned no text for, appear on stderr even
+without this. Such pages are left out of the output, so check for them.
 
 ## Project
 

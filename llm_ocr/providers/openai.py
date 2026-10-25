@@ -1,13 +1,26 @@
 import base64
 import logging
 import os
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, Timeout
 
 from ..core.base import LLMProvider, OCRResponseError
 
 logger = logging.getLogger(__name__)
+
+# Local servers such as Ollama often handle one request at a time, so with
+# max_concurrency > 1 later pages wait in their queue. The SDK's default
+# 10-minute timeout would then cancel and silently resend those requests.
+# Connecting keeps the SDK's 5 seconds, so a server that is down fails fast.
+LOCAL_SERVER_TIMEOUT = Timeout(1800.0, connect=5.0)
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
+
+
+def _is_local_url(url: str) -> bool:
+    host = urlparse(url).hostname or ""
+    return host in LOCAL_HOSTS or host.endswith(".localhost")
 
 
 class OpenAI(LLMProvider):
@@ -65,6 +78,8 @@ class OpenAI(LLMProvider):
             model: Model to use. Use OpenAI.GPT_4O, OpenAI.GPT_4O_MINI, etc.
             base_url: Optional custom API base URL (or OPENAI_BASE_URL env var)
                       for OpenAI-compatible servers (e.g. "http://localhost:11434/v1").
+                      For a server on this machine the request timeout defaults
+                      to 30 minutes instead of the SDK's 10.
             **kwargs: Additional parameters for the OpenAI API (e.g., temperature)
         """
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
@@ -79,11 +94,14 @@ class OpenAI(LLMProvider):
 
         super().__init__(api_key, model, **kwargs)
 
-        # Initialize the async client
+        # Initialize the async client. A `timeout` passed in **kwargs is sent
+        # with each request and overrides the client default set here.
+        client_kwargs: Dict[str, Any] = {}
         if self.base_url:
-            self.aclient = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
-        else:
-            self.aclient = AsyncOpenAI(api_key=self.api_key)
+            client_kwargs["base_url"] = self.base_url
+            if _is_local_url(self.base_url):
+                client_kwargs["timeout"] = LOCAL_SERVER_TIMEOUT
+        self.aclient = AsyncOpenAI(api_key=self.api_key, **client_kwargs)
 
     @property
     def name(self) -> str:

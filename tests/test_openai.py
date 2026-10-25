@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from llm_ocr.core.base import OCRResponseError
-from llm_ocr.providers.openai import OpenAI
+from llm_ocr.providers.openai import LOCAL_SERVER_TIMEOUT, OpenAI, _is_local_url
 
 
 class TestOpenAIProvider:
@@ -40,7 +40,9 @@ class TestOpenAIProvider:
             assert provider.base_url == "http://localhost:11434/v1"
             assert provider.model == "llava"
             mock_client.assert_called_once_with(
-                api_key="not-needed", base_url="http://localhost:11434/v1"
+                api_key="not-needed",
+                base_url="http://localhost:11434/v1",
+                timeout=LOCAL_SERVER_TIMEOUT,
             )
 
     def test_init_with_env_base_url(self, unset_env_keys, monkeypatch):
@@ -50,8 +52,33 @@ class TestOpenAIProvider:
             provider = OpenAI(api_key="custom-key")
             assert provider.base_url == "http://localhost:8000/v1"
             mock_client.assert_called_once_with(
-                api_key="custom-key", base_url="http://localhost:8000/v1"
+                api_key="custom-key",
+                base_url="http://localhost:8000/v1",
+                timeout=LOCAL_SERVER_TIMEOUT,
             )
+
+    def test_remote_base_url_keeps_sdk_timeout(self, unset_env_keys):
+        """Only servers on this machine get the longer timeout."""
+        with patch("llm_ocr.providers.openai.AsyncOpenAI") as mock_client:
+            OpenAI(api_key="key", base_url="https://openrouter.ai/api/v1")
+            mock_client.assert_called_once_with(
+                api_key="key", base_url="https://openrouter.ai/api/v1"
+            )
+
+    @pytest.mark.parametrize(
+        "url, local",
+        [
+            ("http://localhost:11434/v1", True),
+            ("http://127.0.0.1:8000/v1", True),
+            ("http://[::1]:1234/v1", True),
+            ("http://ollama.localhost/v1", True),
+            ("https://api.openai.com/v1", False),
+            ("http://192.168.1.20:11434/v1", False),
+            ("localhost:11434/v1", False),  # no scheme: hostname can't be parsed
+        ],
+    )
+    def test_is_local_url(self, url, local):
+        assert _is_local_url(url) is local
 
     def test_init_with_custom_model(self, mock_api_key):
         """Test initialization with custom model."""

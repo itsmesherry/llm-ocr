@@ -1,14 +1,26 @@
 """Tests for llm_ocr.core.processor module."""
 
+import logging
 from typing import List
 from unittest.mock import patch
 
+import openai
 import pytest
+from google.genai import errors as genai_errors
 from PIL import Image
+
+try:  # the HTTP client openai builds on: httpx2 from openai 3, httpx before
+    import httpx2 as httpx
+except ImportError:  # pragma: no cover
+    import httpx  # type: ignore[no-redef]
 
 from llm_ocr.config.settings import OCRConfig
 from llm_ocr.core.base import LLMProvider
 from llm_ocr.core.processor import LLMOCR
+
+
+def _http_response(status: int) -> httpx.Response:
+    return httpx.Response(status, request=httpx.Request("POST", "http://test"))
 
 
 class MockProvider(LLMProvider):
@@ -655,3 +667,56 @@ class TestLLMOCRConvert:
         with pytest.raises(OCRResponseError):
             await ocr._process_batch_with_retries([b"png"], [1], 1)
         assert provider.call_count == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error, expected_calls",
+        [
+            # Real SDK exceptions, so a change in how they expose the status shows up
+            (
+                openai.BadRequestError(
+                    "context too small", response=_http_response(400), body=None
+                ),
+                1,
+            ),
+            (
+                openai.AuthenticationError(
+                    "bad key", response=_http_response(401), body=None
+                ),
+                1,
+            ),
+            (genai_errors.ClientError(403, {"error": {"message": "denied"}}), 1),
+            (
+                openai.RateLimitError(
+                    "slow down", response=_http_response(429), body=None
+                ),
+                3,
+            ),
+            (genai_errors.ServerError(503, {"error": {"message": "busy"}}), 3),
+            (RuntimeError("no status code"), 3),
+        ],
+    )
+    async def test_client_errors_are_not_retried(self, error, expected_calls):
+        """4xx errors that cannot succeed fail at once; 429, 5xx and others retry."""
+
+        class ErrorProvider(MockProvider):
+            async def generate_content(
+                self, prompt: str, image_bytes_list: List[bytes]
+            ) -> str:
+                self.call_count += 1
+                raise error
+
+        provider = ErrorProvider()
+        ocr = LLMOCR(provider, OCRConfig(max_retries=3, retry_delay=0.01))
+        with pytest.raises(type(error)):
+            await ocr._process_batch_with_retries([b"png"], [1], 1)
+        assert provider.call_count == expected_calls
+
+    @pytest.mark.asyncio
+    async def test_empty_page_logs_warning(self, caplog):
+        """A page that comes back empty is reported, not dropped silently."""
+        ocr = LLMOCR(MockProvider(responses=["   "]))
+        with caplog.at_level(logging.WARNING, logger="llm_ocr.core.processor"):
+            result = await ocr._process_batch_with_retries([b"png"], [2], 5)
+        assert result.strip() == ""
+        assert "Pages 2/5: the model returned no content" in caplog.text
